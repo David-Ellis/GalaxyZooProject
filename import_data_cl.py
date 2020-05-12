@@ -75,7 +75,7 @@ for batch_id in range(0,batch_number,200):
         if(pic.shape!=(424*424,)):
             print("Error image shape is different")
 
-    #np.savetxt("Galaxy_pics_batch{}.txt".format(batch_number),Galaxy_pics)
+    np.save("Galaxy_pics_batch{}".format(batch_id),Galaxy_pics)
 
 
 example=Galaxy_pics[10].reshape(424,424)
