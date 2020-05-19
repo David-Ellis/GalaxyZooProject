@@ -44,21 +44,23 @@ for i,row in enumerate(all_lines):
 
 img_labels.close()
 
-
+#global variables for reading and ploting images
+scaling = True
+if( scaling == True ):
+    scaling_param = 200
+else:
+    scaling = 424 #necessary for the plot function
 
 def rgb2gray(filepath):
     '''
-    Function 
+    Function
     - takes filepath of image,
     - converts image to gray scale,
     - flattens image to vector of length 424*424
     - and scales this vector to values between 0 and 1
-    
+
     returns vector
     '''
-    scaling = True
-    scaling_param = 200
-    
     img = imread(filepath)
     gray_img = np.dot(img[...,:3], [0.299, 0.587, 0.144])
     if scaling == True:
@@ -69,7 +71,9 @@ def rgb2gray(filepath):
     gray_img_scaled = gray_img/max(gray_img)
     return gray_img_scaled
 
-
+def plot_gray_img(img,scale):
+    img = img.reshape(scale,scale)
+    plt.imshow(img, cmap = "binary_r")
 
 # The images are split up into num_chunks batches and treated separetaley
 # to prevent memory overflow
@@ -85,19 +89,36 @@ imageNames = imageNames2 #[:1271]
 if not os.path.isdir("images"):
     os.makedirs("images")
 
+#shows an example image before looping over all images
+fig1=plt.figure()
+fileName = path + "/" + imageNames[0]
+test_img = rgb2gray(fileName)
+plot_gray_img(test_img, scaling_param)
+if( scaling ):
+    fig2=plt.figure()
+    scaling = False
+    test_img = rgb2gray(fileName)
+    plot_gray_img(test_img, 424)
+    plt.title("original")
+    scaling = True
+plt.show()
+plt.close(fig1)
+plt.close(fig2)
+
+
+
 # Loop over number of "chunks" of images
 for i in range(num_chunks):
-    print("Chunk {}/{}:".format(i+1, num_chunks))  
-    
+    print("Chunk {}/{}:".format(i+1, num_chunks))
+
     imgsInChunk = len(imageNames)//num_chunks
 
-    tmpStore = np.zeros((424 * 424, imgsInChunk))
+    tmpStore = np.zeros((scaling_param * scaling_param, imgsInChunk))
     for j in range(imgsInChunk):
         fileName = path + "/" + imageNames[i*imgsInChunk + j]
         conv_Img = rgb2gray(fileName)
         tmpStore[:,j] = conv_Img
-        #print("{} of {} complete".format(j+1, imgsInChunk))#, end = '\r')
-        
+        print("{} of {} complete".format(j+1, imgsInChunk))#, end = '\r')
+
     np.save("images/images{}.npy".format(i), tmpStore)
     print("\n")
-
