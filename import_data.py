@@ -2,11 +2,12 @@
 from imageio import imread
 import csv
 import numpy as np
-from PIL import Image
+#from PIL import Image
 import matplotlib.pyplot as plt
 import os
 from os import listdir
 from os.path import isfile, join
+from skimage.transform import downscale_local_mean
 
 img_labels = open("galaxy_zoo_labels.csv")
 all_lines=csv.reader(img_labels)
@@ -27,7 +28,7 @@ class11=np.zeros(l*6).reshape(l,6)
 next(all_lines) # Skips first line in file containing titles
 
 for i,row in enumerate(all_lines):
-    if i == 20:
+    if i == 20:          #break is inserted here to only test program with 20 examples
         break
     galaxy_id[i]=row[0]
     class1[i,0],class1[i,1],class1[i,2]=row[1:4]
@@ -46,10 +47,18 @@ img_labels.close()
 
 #global variables for reading and ploting images
 scaling = True
+downsampling = True
 if( scaling == True ):
-    scaling_param = 200
+    scaling_param = 210 # only change to even numbers which can be divided by three
+    pixel_param = scaling_param
 else:
-    scaling = 424 #necessary for the plot function
+    scaling_param = 424 #necessary for the plot function
+if(downsampling == True): # Reduces image resolution
+    ds_param = 3
+    pixel_param = scaling_param//ds_param
+else: 
+    ds_param = 1
+
 
 def rgb2gray(filepath):
     '''
@@ -63,10 +72,12 @@ def rgb2gray(filepath):
     '''
     img = imread(filepath)
     gray_img = np.dot(img[...,:3], [0.299, 0.587, 0.144])
-    if scaling == True:
+    if (scaling == True):
         start = 424//2 - scaling_param // 2
         stop = 424//2 + scaling_param // 2
         gray_img = gray_img[start:stop, start:stop]
+    if (downsampling == True):
+        gray_img = downscale_local_mean(gray_img, (ds_param, ds_param))
     gray_img = gray_img.flatten()
     gray_img_scaled = gray_img/max(gray_img)
     return gray_img_scaled
@@ -78,32 +89,41 @@ def plot_gray_img(img,scale):
 # The images are split up into num_chunks batches and treated separetaley
 # to prevent memory overflow
 
-path = "./example_images"
+path = "./example_images" 
 
 imageNames2 = [f for f in listdir(path) if isfile(join(path, f))]
 
 num_chunks = 1 #Increase this if you get a memory error
 
-imageNames = imageNames2 #[:1271]
+imageNames = imageNames2 #[:1271] # Problem hier: Sortierung passt nicht zu galaxy_id
 # if images file doesn't already exist then make one
 if not os.path.isdir("images"):
     os.makedirs("images")
 
+
+
 #shows an example image before looping over all images
+scaling = True
 fig1=plt.figure()
 fileName = path + "/" + imageNames[0]
-test_img = rgb2gray(fileName)
-plot_gray_img(test_img, scaling_param)
+test_img1 = rgb2gray(fileName)
+fig1 = plot_gray_img(test_img1, pixel_param)
+plt.title("resized")
+#plt.close(fig1)
 if( scaling ):
-    fig2=plt.figure()
+    fig2 = plt.figure()
     scaling = False
-    test_img = rgb2gray(fileName)
-    plot_gray_img(test_img, 424)
+    downsampling = False
+    fileName = path + "/" + imageNames[0]
+    test_img2 = rgb2gray(fileName)
+    plot_gray_img(test_img2, 424)
     plt.title("original")
     scaling = True
-plt.show()
-plt.close(fig1)
-plt.close(fig2)
+    downsampling = True
+    plt.show()
+    #plt.close(fig2)
+
+
 
 
 
@@ -113,12 +133,16 @@ for i in range(num_chunks):
 
     imgsInChunk = len(imageNames)//num_chunks
 
-    tmpStore = np.zeros((scaling_param * scaling_param, imgsInChunk))
+    tmpStore = np.zeros((pixel_param * pixel_param + 1, imgsInChunk))
     for j in range(imgsInChunk):
-        fileName = path + "/" + imageNames[i*imgsInChunk + j]
+        gal_index = i*imgsInChunk + j
+        fileName = path + "/" + imageNames[gal_index]
         conv_Img = rgb2gray(fileName)
-        tmpStore[:,j] = conv_Img
-        print("{} of {} complete".format(j+1, imgsInChunk))#, end = '\r')
+        tmpStore[0] = imageNames[gal_index]
+        tmpStore[1:,j] = conv_Img 
+        for j in range(2):
+            print(tmpStore[:,j])
+        #print("{} of {} complete".format(j+1, imgsInChunk))#, end = '\r')
 
     np.save("images/images{}.npy".format(i), tmpStore)
     print("\n")
