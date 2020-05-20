@@ -56,7 +56,7 @@ else:
 if(downsampling == True): # Reduces image resolution
     ds_param = 3
     pixel_param = scaling_param//ds_param
-else: 
+else:
     ds_param = 1
 
 
@@ -86,45 +86,42 @@ def plot_gray_img(img,scale):
     img = img.reshape(scale,scale)
     plt.imshow(img, cmap = "binary_r")
 
+
 # The images are split up into num_chunks batches and treated separetaley
 # to prevent memory overflow
+def make_filename(id):
+    return "{}.jpg".format(int(id))
 
-path = "./example_images" 
-
-imageNames2 = [f for f in listdir(path) if isfile(join(path, f))]
-
+path = "./images_training_rev1"
 num_chunks = 1 #Increase this if you get a memory error
+imageNames = galaxy_id[0:20] #over which images do you want to loop
 
-imageNames = imageNames2 #[:1271] # Problem hier: Sortierung passt nicht zu galaxy_id
 # if images file doesn't already exist then make one
 if not os.path.isdir("images"):
     os.makedirs("images")
 
 
-
 #shows an example image before looping over all images
-scaling = True
 fig1=plt.figure()
-fileName = path + "/" + imageNames[0]
+fileName = path + "/" + make_filename(imageNames[0])
 test_img1 = rgb2gray(fileName)
 fig1 = plot_gray_img(test_img1, pixel_param)
 plt.title("resized")
-#plt.close(fig1)
-if( scaling ):
+if( scaling and downsampling):          #not very nicely implemented but it fulfills its purpose
     fig2 = plt.figure()
     scaling = False
     downsampling = False
-    fileName = path + "/" + imageNames[0]
+    fileName = path + "/" + make_filename(imageNames[0])
     test_img2 = rgb2gray(fileName)
     plot_gray_img(test_img2, 424)
     plt.title("original")
     scaling = True
     downsampling = True
     plt.show()
-    #plt.close(fig2)
-
-
-
+    plt.close(fig2)
+else:
+    plt.show()
+plt.close(fig1)
 
 
 # Loop over number of "chunks" of images
@@ -133,16 +130,15 @@ for i in range(num_chunks):
 
     imgsInChunk = len(imageNames)//num_chunks
 
-    tmpStore = np.zeros((pixel_param * pixel_param + 1, imgsInChunk))
+    tmpStore = np.zeros((imgsInChunk, pixel_param * pixel_param + 1))
     for j in range(imgsInChunk):
         gal_index = i*imgsInChunk + j
-        fileName = path + "/" + imageNames[gal_index]
+        fileName = path + "/" + make_filename(imageNames[gal_index])
         conv_Img = rgb2gray(fileName)
-        tmpStore[0] = imageNames[gal_index]
-        tmpStore[1:,j] = conv_Img 
-        for j in range(2):
-            print(tmpStore[:,j])
-        #print("{} of {} complete".format(j+1, imgsInChunk))#, end = '\r')
+        tmpStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
+        tmpStore[j,1:] = conv_Img               #the remaining entries are the pixels
+        print("{} of {} complete".format(j+1, imgsInChunk), end = '\r')
 
     np.save("images/images{}.npy".format(i), tmpStore)
     print("\n")
+    #print(tmpStore[1])
