@@ -7,6 +7,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 from skimage.transform import downscale_local_mean
+from skimage.restoration import denoise_tv_chambolle
 
 img_labels = open("galaxy_zoo_labels.csv")
 all_lines=csv.reader(img_labels)
@@ -60,7 +61,7 @@ spiral_ind = [i for i in range(l) if (good_samp[i] == True)] #contains the index
 spiral_num = len(spiral_ind)
 print("Out of all {} samples we choose {} samples for learning our algorithms.".format(l, spiral_num))
 
-# we create a new array of labels with binary values 0 and 1 for hard classification
+# we create a new array of labels with binary values 0 (yes) and 1 (no) for hard classification
 spiral_bin = np.zeros(spiral_num)
 for i in range(spiral_num):
     spiral_bin[i] = np.argmax(spiral_class[i,:])
@@ -71,6 +72,7 @@ for i in range(spiral_num):
 #global variables for reading and ploting images
 scaling = True
 downsampling = True
+denoising = True
 if( scaling == True ):
     scaling_param = 180 # only change to even numbers which can be divided by ds_param
     
@@ -102,9 +104,10 @@ def rgb2gray(filepath):
         gray_img = gray_img[start:stop, start:stop]
     if (downsampling == True):
         gray_img = downscale_local_mean(gray_img, (ds_param, ds_param))
+    if (denoising == True):
+        gray_img = denoise_tv_chambolle(gray_img, weight = 5)
     gray_img = gray_img.flatten()
-    gray_img_scaled = gray_img/max(gray_img)
-    return gray_img_scaled
+    return gray_img
 
 def plot_gray_img(img,scale):
     img = img.reshape(scale,scale)
@@ -117,7 +120,7 @@ def make_filename(id):
     return "{}.jpg".format(int(id)) #returns string with galaxy id
 
 path = "./images_training_rev1"
-num_chunks = 10 #Increase this if you get a memory error
+num_chunks = 5 #Increase this if you get a memory error
 imageNames = spiral_id #over which images do you want to loop
 
 
@@ -128,7 +131,7 @@ if not os.path.isdir("spiral_images"):
 
 #shows an example image before looping over all images
 fig1=plt.figure()
-fileName = path + "/" + make_filename(imageNames[0])
+fileName = path + "/" + make_filename(imageNames[1])
 test_img1 = rgb2gray(fileName)
 fig1 = plot_gray_img(test_img1, pixel_param)
 plt.title("resized")
@@ -136,12 +139,14 @@ if( scaling and downsampling):          #not very nicely implemented but it fulf
     fig2 = plt.figure()
     scaling = False
     downsampling = False
-    fileName = path + "/" + make_filename(imageNames[0])
+    denoising = False
+    fileName = path + "/" + make_filename(imageNames[1])
     test_img2 = rgb2gray(fileName)
     plot_gray_img(test_img2, 424)
     plt.title("original")
     scaling = True
     downsampling = True
+    denoising = True
     plt.show()
     plt.close(fig2)
 else:
@@ -166,4 +171,9 @@ for i in range(num_chunks):
 
     np.save("spiral_images/images{}.npy".format(i), tmpStore)
     print(" complete \n")
+
+    
+np.save("spiral_images/bin_labels.npy", spiral_bin)
+np.save("spiral_images/indices.npy", spiral_ind)
+
     #print(tmpStore[1])
