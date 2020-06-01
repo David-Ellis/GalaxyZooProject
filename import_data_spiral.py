@@ -45,15 +45,15 @@ img_labels.close()
 
 ########################################################################################################
 
-# in class4 search for samples with abs(yes - no) > 0.6 
+# in class4 search for samples with abs(yes - no) > 0.6
 # to select good training candidates
-good_samp = np.zeros(l) 
+good_samp = np.zeros(l)
 for i in range(l):
     good_samp[i] = abs(class4[i,0] - class4[i,1])
 
 good_samp = (good_samp >= 0.6)
 
-# class_spiral contains labels to question: 
+# class_spiral contains labels to question:
 # "Is there a spiral pattern?" - Yes / No
 spiral_class = class4[good_samp]
 spiral_id = galaxy_id[good_samp]         #contains the corresponding galaxy IDs
@@ -62,10 +62,12 @@ spiral_num = len(spiral_ind)
 print("Out of all {} samples we choose {} samples for learning our algorithms.".format(l, spiral_num))
 
 # we create a new array of labels with binary values 0 (yes) and 1 (no) for hard classification
-spiral_bin = np.zeros(spiral_num)
+spiral_bin = np.zeros(spiral_num*2).reshape(spiral_num,2)
 for i in range(spiral_num):
-    spiral_bin[i] = np.argmax(spiral_class[i,:])
-
+    index = np.argmax(spiral_class[i,:]) #is either zero (it is a spiral) or one (no spiral)
+    spiral_bin[i, index] = 1 #creates a list with [spiral, no spiral]
+                                                # [1,      0]
+                                                # [0,      1]...
 
 ####################################################################################################
 
@@ -75,7 +77,7 @@ downsampling = True
 denoising = True
 if( scaling == True ):
     scaling_param = 180 # only change to even numbers which can be divided by ds_param
-    
+
 else:
     scaling_param = 424 #necessary for the plot function
 pixel_param = scaling_param
@@ -172,7 +174,7 @@ for i in range(num_chunks):
     np.save("spiral_images/images{}.npy".format(i), tmpStore)
     print(" complete \n")
 
-    
+
 np.save("spiral_images/bin_labels.npy", spiral_bin)
 np.save("spiral_images/indices.npy", spiral_ind)
 
