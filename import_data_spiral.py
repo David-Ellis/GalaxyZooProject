@@ -9,6 +9,8 @@ from os.path import isfile, join
 from skimage.transform import downscale_local_mean
 from skimage.restoration import denoise_tv_chambolle
 
+from ini import *
+
 img_labels = open("galaxy_zoo_labels.csv")
 all_lines=csv.reader(img_labels)
 
@@ -71,22 +73,6 @@ for i in range(spiral_num):
 
 ####################################################################################################
 
-#global variables for reading and ploting images
-scaling = True
-downsampling = True
-denoising = True
-if( scaling == True ):
-    scaling_param = 180 # only change to even numbers which can be divided by ds_param
-
-else:
-    scaling_param = 424 #necessary for the plot function
-pixel_param = scaling_param
-if(downsampling == True): # Reduces image resolution
-    ds_param = 4
-    pixel_param = scaling_param//ds_param
-else:
-    ds_param = 1
-
 
 def rgb2gray(filepath):
     '''
@@ -122,7 +108,7 @@ def make_filename(id):
     return "{}.jpg".format(int(id)) #returns string with galaxy id
 
 path = "./images_training_rev1"
-num_chunks = 5 #Increase this if you get a memory error
+#Increase num_chunks in ini.py if you get a memory error
 imageNames = spiral_id #over which images do you want to loop
 
 
