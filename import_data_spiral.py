@@ -55,21 +55,40 @@ for i in range(l):
 
 good_samp = (good_samp >= 0.6)
 
+#additional randomly chosen smooth Galaxies. Without thes images, there are 6103 Spirals and 1214 other
+smooth_samp = (class1[:,0]>0.85) #5187 galaxies
+class4[smooth_samp,1]= 1 #only ok for the hard classifier. circumvents the issue where both values are zero
+
+samp = smooth_samp + good_samp
 # class_spiral contains labels to question:
 # "Is there a spiral pattern?" - Yes / No
-spiral_class = class4[good_samp]
-spiral_id = galaxy_id[good_samp]         #contains the corresponding galaxy IDs
-spiral_ind = [i for i in range(l) if (good_samp[i] == True)] #contains the index number in the galaxy_id
+spiral_class = class4[samp]
+spiral_id = galaxy_id[samp]         #contains the corresponding galaxy IDs
+spiral_ind = [i for i in range(l) if (samp[i] == True)] #contains the index number in the galaxy_id
 spiral_num = len(spiral_ind)
 print("Out of all {} samples we choose {} samples for learning our algorithms.".format(l, spiral_num))
 
 # we create a new array of labels with binary values 0 (yes) and 1 (no) for hard classification
 spiral_bin = np.zeros(spiral_num*2).reshape(spiral_num,2)
+num_spiral = 0 #Number of spiral galaxies
 for i in range(spiral_num):
     index = np.argmax(spiral_class[i,:]) #is either zero (it is a spiral) or one (no spiral)
     spiral_bin[i, index] = 1 #creates a list with [spiral, no spiral]
-                                                # [1,      0]
+    if(index == 0):
+        num_spiral += 1                         # [1,      0]
                                                 # [0,      1]...
+
+
+print("{} are Spiral Galaxies and {} not".format(num_spiral,spiral_num - num_spiral))
+
+"""
+#Which Galaxies could be used to increase the no spiral labels?
+print("Galaxie that are simply smooth:", galaxy_id[class1[:,0]>0.9])
+no_spiral=(class4[:,0]<0.1) * (good_samp)
+print("Galaxie that are a disk viewd ontop but are no spirals:", galaxy_id[no_spiral]) #look very similar too smooth and round but they have sometimes special features
+#---> take additional pictures of smooth and raound galaxies (the spiral label is undefined for galaxies viewd edge on)
+print(len(galaxy_id[class1[:,0]>0.9]))
+"""
 
 ####################################################################################################
 
