@@ -1,86 +1,12 @@
 from imageio import imread
 import csv
 import numpy as np
-#from PIL import Image
+
 import matplotlib.pyplot as plt
 import os
-from os import listdir
-from os.path import isfile, join
 from skimage.transform import downscale_local_mean
 
-img_labels = open("galaxy_zoo_labels.csv")
-all_lines=csv.reader(img_labels)
-
-l= 61578 #number of pictures and rows in the csv table
-galaxy_id=np.zeros(l)
-class1=np.zeros(l*3).reshape(l,3)
-class2=np.zeros(l*2).reshape(l,2)
-class3=np.zeros(l*2).reshape(l,2)
-class4=np.zeros(l*2).reshape(l,2)
-class5=np.zeros(l*4).reshape(l,4)
-class6=np.zeros(l*2).reshape(l,2)
-class7=np.zeros(l*3).reshape(l,3)
-class8=np.zeros(l*7).reshape(l,7)
-class9=np.zeros(l*3).reshape(l,3)
-class10=np.zeros(l*3).reshape(l,3)
-class11=np.zeros(l*6).reshape(l,6)
-next(all_lines) # Skips first line in file containing titles
-
-for i,row in enumerate(all_lines):
-    galaxy_id[i]=row[0]
-    class1[i,0],class1[i,1],class1[i,2]=row[1:4]
-    class2[i,0],class2[i,1]=row[4:6]
-    class3[i,0],class3[i,1]=row[6:8]
-    class4[i,0],class4[i,1]=row[8:10]
-    class5[i,0],class5[i,1],class5[i,2],class5[i,3]=row[10:14]
-    class6[i,0],class6[i,1]=row[14:16]
-    class7[i,0],class7[i,1],class7[i,2]=row[16:19]
-    class8[i,0],class8[i,1],class8[i,2],class8[i,3],class8[i,4],class8[i,5],class8[i,6]=row[19:26]
-    class9[i,0],class9[i,1],class9[i,2]=row[26:29]
-    class10[i,0],class10[i,1],class10[i,2]=row[29:32]
-    class11[i,0],class11[i,1],class11[i,2],class11[i,3],class11[i,4],class11[i,5]=row[32:38]
-
-img_labels.close()
-
-########################################################################################################
-
-# in class9 search for samples with 9.1+9.2+9.3 > 0.8 
-# to select good training candidates
-good_samp = np.zeros(l) 
-for i in range(l):
-    good_samp[i] = abs(class9[i,0] + class9[i,1] + class9[i,2])
-
-good_samp = (good_samp >= 0.8)
-
-# class_bulge contains labels to question: 
-# "Does the galaxy have a bulge at its center? If so, what shape?" - rounded / boxy / no bulge
-bulge_class  = class9[good_samp]
-bulge_id = galaxy_id[good_samp]         #contains the corresponding galaxy IDs
-bulge_ind = [i for i in range(l) if (good_samp[i] == True)] #contains the index number in the galaxy_id
-bulge_num = len(bulge_ind)
-print("Out of all {} samples we choose {} samples for learning our algorithms.".format(l, bulge_num))
-# we create a new array of labels with binary values 0, 1 and 2 for hard classification
-bulge_bin = np.zeros(bulge_num)
-for i in range(bulge_num):
-    bulge_bin[i] = np.argmax(bulge_class[i,:])
-
-####################################################################################################
-
-#global variables for reading and ploting images
-scaling = True
-downsampling = True
-if( scaling == True ):
-    scaling_param = 180 # only change to even numbers which can be divided by ds_param
-    
-else:
-    scaling_param = 424 #necessary for the plot function
-pixel_param = scaling_param
-if(downsampling == True): # Reduces image resolution
-    ds_param = 4
-    pixel_param = scaling_param//ds_param
-else:
-    ds_param = 1
-
+# %% Functions
 
 def rgb2gray(filepath):
     '''
@@ -107,24 +33,78 @@ def rgb2gray(filepath):
 def plot_gray_img(img,scale):
     img = img.reshape(scale,scale)
     plt.imshow(img, cmap = "binary_r")
+    
+def make_filename(id):
+    return "{}.jpg".format(int(id)) #returns string with galaxy id
+    
+# %%
+
+img_labels = open("galaxy_zoo_labels.csv")
+all_lines=csv.reader(img_labels)
+
+l= 61578 #number of pictures and rows in the csv table
+galaxy_id=np.zeros(l)
+class9=np.zeros(l*3).reshape(l,3)
+next(all_lines) # Skips first line in file containing titles
+
+for i,row in enumerate(all_lines):
+    galaxy_id[i]=row[0]
+    class9[i,0],class9[i,1],class9[i,2]=row[26:29]
+
+img_labels.close()
+
+# %% Restrict images to "good" samples
+
+# in class9 search for samples with 9.1+9.2+9.3 > 0.8 
+# to select good training candidates
+good_samp = np.zeros(l) 
+for i in range(l):
+    good_samp[i] = abs(class9[i,0] + class9[i,1] + class9[i,2])
+
+good_samp = (good_samp >= 0.8)
+
+
+# class_disk contains labels to question: 
+# "Could this be a disk viewed edge-on?" - Yes / No
+disk_class = class9[good_samp]
+disk_id = galaxy_id[good_samp]         #contains the corresponding galaxy IDs
+disk_ind = [i for i in range(l) if (good_samp[i] == True)] #contains the index number in the galaxy_id
+disk_num = len(disk_ind)
+print("Out of all {} samples we choose {} samples for teaching our algorithms.".format(l, disk_num))
+
+# we create a new array of labels with binary values 0 and 1 for hard classification
+disk_bin = np.zeros(disk_num)
+for i in range(disk_num):
+    disk_bin[i] = np.argmax(disk_class[i,:])
+
+
+# %% Define desired scaling
+
+#global variables for reading and ploting images
+scaling = True
+downsampling = True
+
+if( scaling == True ):
+    scaling_param = 180 # only change to even numbers which can be divided by ds_param
+else:
+    scaling_param = 424 #necessary for the plot function
+    
+pixel_param = scaling_param
+if(downsampling == True): # Reduces image resolution
+    ds_param = 4
+    pixel_param = scaling_param//ds_param
+else:
+    ds_param = 1
 
 
 # The images are split up into num_chunks batches and treated separetaley
 # to prevent memory overflow
-def make_filename(id):
-    return "{}.jpg".format(int(id)) #returns string with galaxy id
 
 path = "./galaxy_zoo_images/images_training_rev1"
-num_chunks = 5 #Increase this if you get a memory error
-imageNames = bulge_id #over which images do you want to loop
+num_chunks = 10 #Increase this if you get a memory error
+imageNames = disk_id #over which images do you want to loop
 
-
-# if images file doesn't already exist then make one
-if not os.path.isdir("bulge_images"):
-    os.makedirs("bulge_images")
-
-
-#shows an example image before looping over all images
+# %% Example image
 fig1=plt.figure()
 fileName = path + "/" + make_filename(imageNames[0])
 test_img1 = rgb2gray(fileName)
@@ -146,11 +126,20 @@ else:
     plt.show()
 plt.close(fig1)
 
+
+# %% Loop over all "good" images, process them and save in chunks
+
+# if images file doesn't already exist then make one
+if not os.path.isdir("bulge_images"):
+    os.makedirs("bulge_images")
+
 imgsInChunk = len(imageNames)//num_chunks
 print("There are {} images in each of the {} chunks".format(imgsInChunk, num_chunks))
+
 # Loop over number of "chunks" of images
 for i in range(num_chunks):
-    print("Chunk {}/{}:".format(i+1, num_chunks))
+    print("Chunk {}/{}:".format(i+1, num_chunks), end = " ")
+
     tmpStore = np.zeros((imgsInChunk, pixel_param * pixel_param + 1))
     for j in range(imgsInChunk):
         gal_index = i*imgsInChunk + j
@@ -158,10 +147,7 @@ for i in range(num_chunks):
         conv_Img = rgb2gray(fileName)
         tmpStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
         tmpStore[j,1:] = conv_Img               #the remaining entries are the pixels
-        #print("{} of {} complete".format(j+1, imgsInChunk), end = '\r')
 
-    np.save("bulge_images/images{}.npy".format(i), tmpStore)
-    print("complete \n")
-    #print(tmpStore[1])
-
+    np.save("disk_images/images{}.npy".format(i), tmpStore)
+    print(" Complete.")
 

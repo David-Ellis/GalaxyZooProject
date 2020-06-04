@@ -71,7 +71,7 @@ disk_class = class2[good_samp]
 disk_id = galaxy_id[good_samp]         #contains the corresponding galaxy IDs
 disk_ind = [i for i in range(l) if (good_samp[i] == True)] #contains the index number in the galaxy_id
 disk_num = len(disk_ind)
-print("Out of all {} samples we choose {} samples for learning our algorithms.".format(l, disk_num))
+print("Out of all {} samples we choose {} samples for teaching our algorithms.".format(l, disk_num))
 
 # we create a new array of labels with binary values 0 and 1 for hard classification
 disk_bin = np.zeros(disk_num)
@@ -150,5 +150,5 @@ for i in range(num_chunks):
         tmpStore[j,1:] = conv_Img               #the remaining entries are the pixels
 
     np.save("disk_images/images{}.npy".format(i), tmpStore)
-    print(" Complete")
+    print(" Complete.")
 
