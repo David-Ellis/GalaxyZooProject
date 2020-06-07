@@ -8,6 +8,8 @@ from os import listdir
 from os.path import isfile, join
 from skimage.transform import downscale_local_mean
 from skimage.restoration import denoise_tv_chambolle
+from skimage import filters
+from skimage.util import invert
 
 from ini import *
 
@@ -79,11 +81,11 @@ for i in range(spiral_num):
                                                 # [0,      1]...
 
 
-print("{} are Spiral Galaxies and {} not".format(num_spiral,spiral_num - num_spiral))
+#print("{} are Spiral Galaxies and {} not".format(num_spiral,spiral_num - num_spiral))
 
 """
 #Which Galaxies could be used to increase the no spiral labels?
-print("Galaxie that are simply smooth:", galaxy_id[class1[:,0]>0.9])
+print("Galaxies that are simply smooth:", galaxy_id[class1[:,0]>0.9])
 no_spiral=(class4[:,0]<0.1) * (good_samp)
 print("Galaxie that are a disk viewd ontop but are no spirals:", galaxy_id[no_spiral]) #look very similar too smooth and round but they have sometimes special features
 #---> take additional pictures of smooth and raound galaxies (the spiral label is undefined for galaxies viewd edge on)
@@ -98,8 +100,8 @@ def rgb2gray(filepath):
     Function
     - takes filepath of image,
     - converts image to gray scale,
+    - resizes, downsamples and denoises image (optional)
     - flattens image to vector of length 424*424
-    - and scales this vector to values between 0 and 1
 
     returns vector
     '''
@@ -113,6 +115,13 @@ def rgb2gray(filepath):
         gray_img = downscale_local_mean(gray_img, (ds_param, ds_param))
     if (denoising == True):
         gray_img = denoise_tv_chambolle(gray_img, weight = 5)
+    if (contouring == True):
+        try:
+            thresh = filters.threshold_minimum(gray_img)
+        except RuntimeError:
+            thresh = filters.threshold_otsu(gray_img)
+        #print(np.mean(gray_img))
+        gray_img = gray_img > thresh
     gray_img = gray_img.flatten()
     return gray_img
 
@@ -135,30 +144,32 @@ imageNames = spiral_id #over which images do you want to loop
 if not os.path.isdir("spiral_images"):
     os.makedirs("spiral_images")
 
-
-#shows an example image before looping over all images
-fig1=plt.figure()
-fileName = path + "/" + make_filename(imageNames[1])
-test_img1 = rgb2gray(fileName)
-fig1 = plot_gray_img(test_img1, pixel_param)
-plt.title("resized")
-if( scaling and downsampling):          #not very nicely implemented but it fulfills its purpose
-    fig2 = plt.figure()
-    scaling = False
-    downsampling = False
-    denoising = False
-    fileName = path + "/" + make_filename(imageNames[1])
-    test_img2 = rgb2gray(fileName)
-    plot_gray_img(test_img2, 424)
-    plt.title("original")
-    scaling = True
-    downsampling = True
-    denoising = True
-    plt.show()
-    plt.close(fig2)
-else:
-    plt.show()
-plt.close(fig1)
+for k in range(0,50,5):
+    #shows an example image before looping over all images
+    fig1=plt.figure()
+    fileName = path + "/" + make_filename(imageNames[k])
+    test_img1 = rgb2gray(fileName)
+    fig1 = plot_gray_img(test_img1, pixel_param)
+    plt.title("resized")
+    if(scaling):          #not very nicely implemented but it fulfills its purpose
+        fig2 = plt.figure()
+        scaling = False
+        #downsampling = False
+        #denoising = False
+        #contouring = False
+        fileName = path + "/" + make_filename(imageNames[k])
+        test_img2 = rgb2gray(fileName)
+        plot_gray_img(test_img2, 424)
+        plt.title("original")
+        scaling = True
+        #downsampling = True
+        #denoising = True
+        #contouring = True
+        plt.show()
+        plt.close(fig2)
+    else:
+            plt.show()
+    plt.close(fig1)
 
 imgsInChunk = len(imageNames)//num_chunks
 print("There are {} images in each of the {} chunks".format(imgsInChunk, num_chunks))

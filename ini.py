@@ -1,7 +1,10 @@
 #global variables for reading and ploting images
 scaling = True
-downsampling = True
-denoising = True
+downsampling = False
+denoising = False
+contouring = False
+PCAnalysis = True
+components = 500
 if( scaling == True ):
     scaling_param = 180 # only change to even numbers which can be divided by ds_param
 
@@ -14,4 +17,5 @@ if(downsampling == True): # Reduces image resolution
 else:
     ds_param = 1
 
-num_chunks = 1 #Increase this if you get a memory error
+num_chunks = 5 #Increase this if you get a memory error
+
