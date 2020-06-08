@@ -153,3 +153,33 @@ plt.ylabel('model loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 plt.show() 
+
+# %% Plot accuracy over time
+
+# evaluate model
+score = model_DNN.evaluate(X_test, Y_test, verbose=1)
+
+# print performance
+print()
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
+
+# look into training history
+
+# summarize history for accuracy
+plt.figure()
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.ylabel('model accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='best')
+plt.show()
+
+plt.figure()
+# summarize history for loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.ylabel('model loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='best')
+plt.show()
