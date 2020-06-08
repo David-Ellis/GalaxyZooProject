@@ -102,7 +102,7 @@ else:
 # to prevent memory overflow
 
 path = "./galaxy_zoo_images/images_training_rev1"
-num_chunks = 10 #Increase this if you get a memory error
+num_chunks = 1 #Increase this if you get a memory error
 imageNames = disk_id #over which images do you want to loop
 
 # %% Example image
@@ -141,14 +141,23 @@ print("There are {} images in each of the {} chunks".format(imgsInChunk, num_chu
 for i in range(num_chunks):
     print("Chunk {}/{}:".format(i+1, num_chunks), end = " ")
 
-    tmpStore = np.zeros((imgsInChunk, pixel_param * pixel_param + 1))
+    # Temporary image storage
+    tmpImgStore = np.zeros((imgsInChunk, pixel_param * pixel_param + 1))
+    # Temporary class storage
+    tmpClassStore = np.zeros((imgsInChunk, 2))
     for j in range(imgsInChunk):
+        # determine image file name
         gal_index = i*imgsInChunk + j
         fileName = path + "/" + make_filename(imageNames[gal_index])
+        # process image
         conv_Img = rgb2gray(fileName)
-        tmpStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
-        tmpStore[j,1:] = conv_Img               #the remaining entries are the pixels
+        # store image
+        tmpImgStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
+        tmpImgStore[j,1:] = conv_Img               #the remaining entries are the pixels
+        # store class data
+        tmpClassStore[j,:] = [disk_class[gal_index,0], disk_class[gal_index,1]]
 
-    np.save("disk_images/images{}.npy".format(i), tmpStore)
+    np.save("disk_images/images{}.npy".format(i), tmpImgStore)
+    np.save("disk_images/classes{}.npy".format(i), tmpClassStore)
     print(" Complete.")
 
