@@ -73,15 +73,17 @@ print("Out of all {} samples we choose {} samples for learning our algorithms.".
 # we create a new array of labels with binary values 0 (yes) and 1 (no) for hard classification
 spiral_bin = np.zeros(spiral_num*2).reshape(spiral_num,2)
 num_spiral = 0 #Number of spiral galaxies
+spiral_soft = np.zeros(spiral_num*2).reshape(spiral_num,2) #soft classifier (no normalisation because the value already corresponds to the probability that it is or is not a spiral)
 for i in range(spiral_num):
     index = np.argmax(spiral_class[i,:]) #is either zero (it is a spiral) or one (no spiral)
     spiral_bin[i, index] = 1 #creates a list with [spiral, no spiral]
+    spiral_soft[i,0] = spiral_class[i,0]        # [1,      0]
+    spiral_soft[i,1] = spiral_class[i,1]        # [0,      1]...
     if(index == 0):
-        num_spiral += 1                         # [1,      0]
-                                                # [0,      1]...
+        num_spiral += 1
 
 
-#print("{} are Spiral Galaxies and {} not".format(num_spiral,spiral_num - num_spiral))
+print("{} are Spiral Galaxies and {} not".format(num_spiral,spiral_num - num_spiral))
 
 """
 #Which Galaxies could be used to increase the no spiral labels?
@@ -164,7 +166,7 @@ for k in range(1,501,50):
         fig2 = plt.figure()
         fileName = path + "/" + make_filename(imageNames[k])
         test_img2 = plot_original(fileName)
-        
+
         plt.title("original")
         plt.show()
         plt.close(fig2)
@@ -183,13 +185,14 @@ for i in range(num_chunks):
         conv_Img = rgb2gray(fileName)
         tmpStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
         tmpStore[j,1:] = conv_Img               #the remaining entries are the pixels
-        #print("{} of {} complete".format(j+1, imgsInChunk), end = '\r')
+        print("{} of {} complete".format(j+1, imgsInChunk), end = '\r')
 
     np.save("spiral_images/images{}.npy".format(i), tmpStore)
     print(" complete \n")
 
 
 np.save("spiral_images/bin_labels.npy", spiral_bin)
+np.save("spiral_images/soft_labels.npy", spiral_soft)
 np.save("spiral_images/indices.npy", spiral_ind)
 
     #print(tmpStore[1])
