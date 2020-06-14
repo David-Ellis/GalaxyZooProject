@@ -12,6 +12,8 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
+plt.close("all")
+
 seed=0
 trainingPercentage = 0.8
 
@@ -42,6 +44,7 @@ def classDisribution(Y):
   return count
     
 def plotClassDist(Y):
+  '''plot bar graph of class distribution'''
   counts = classDisribution(Y)
   plt.figure()
   plt.bar(range(len(Y.T)), counts)
@@ -83,7 +86,7 @@ X_test = X_test.astype('float32')
 
 # look at an example of data point
 plotExample(X_train, Y_train, 150)
-
+plt.show()
 
 print('X_train shape:', X_train.shape)
 print('Y_train shape:', Y_train.shape)
@@ -115,7 +118,7 @@ print('Model architecture created successfully!')
 
 # %% Choose the Optimizer and the Cost Function
 
-def compile_model(optimizer=keras.optimizers.Adam()):
+def compile_model(optimizer=keras.optimizers.Adadelta()):
     # create the mode
     model=create_DNN()
     # compile the model
@@ -130,10 +133,10 @@ print('Model compiled successfully and ready to be trained.')
 
 # training parameters
 batch_size = 64
-epochs = 10
+epochs = 15
 
 # create the deep neural net
-model_DNN=compile_model()
+model_DNN=compile_model(optimizer = keras.optimizers.Nadam())
 
 # train DNN and store training info in history
 history=model_DNN.fit(X_train, Y_train,
@@ -141,38 +144,6 @@ history=model_DNN.fit(X_train, Y_train,
           epochs=epochs,
           verbose=1,
           validation_data=(X_test, Y_test))
-
-# %% Evaluate the Model Performance on the Unseen Test Data
-
-# evaluate model
-score = model_DNN.evaluate(X_test, Y_test, verbose=1)
-
-# print performance
-print()
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
-
-# look into training history
-
-# summarize history for accuracy
-plt.figure()
-plt.plot(history.history['accuracy'])
-plt.plot(history.history['val_accuracy'])
-
-plt.ylabel('model accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='best')
-plt.show()
-
-
-# summarize history for loss
-plt.figure()
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.ylabel('model loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='best')
-plt.show() 
 
 # %% Plot accuracy over epochs
 
@@ -203,3 +174,32 @@ plt.ylabel('model loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 plt.show()
+
+# %% Modify hyperparameters
+
+epochs = 5
+
+optimizers = [keras.optimizers.SGD(),
+              keras.optimizers.RMSprop(), keras.optimizers.Adagrad(), 
+              keras.optimizers.Adadelta(), keras.optimizers.Adamax(),
+              keras.optimizers.Adam(), keras.optimizers.Nadam()]
+
+test_accuracy = np.zeros(len(optimizers))
+for i, optimizer in enumerate(optimizers):
+
+  model_DNN=compile_model(optimizer = optimizer)
+  
+  # train DNN and store training info in history
+  history=model_DNN.fit(X_train, Y_train,
+            batch_size=batch_size,
+            epochs=epochs,
+            verbose=1,
+            validation_data=(X_test, Y_test))
+  
+  score = model_DNN.evaluate(X_test, Y_test, verbose=1)
+  test_accuracy[i] = history.history['val_accuracy'][-1]
+  
+# %%
+plt.figure()
+plt.plot(range(len(optimizers)),test_accuracy, "o")
+print("Optimiser {} performs the best".format(np.arange(len(optimizers))[test_accuracy == max(test_accuracy)]))
