@@ -12,7 +12,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.close("all")
+plt.close()
 
 seed=0
 trainingPercentage = 0.8
@@ -101,11 +101,11 @@ from keras.layers import Dense, Dropout#, Flatten
 #from keras.layers import Conv2D, MaxPooling2D
 
 
-def create_DNN():
+def create_DNN(neurons1):
     # instantiate model
     model = Sequential()
     # add a dense all-to-all relu layer
-    model.add(Dense(400,input_shape=(img_rows*img_cols,), activation='relu'))
+    model.add(Dense(neurons1,input_shape=(img_rows*img_cols,), activation='relu'))
     # add a dense all-to-all relu layer
     model.add(Dense(100, activation='relu'))
     # apply dropout with rate 0.5
@@ -118,9 +118,9 @@ print('Model architecture created successfully!')
 
 # %% Choose the Optimizer and the Cost Function
 
-def compile_model(optimizer=keras.optimizers.Adadelta()):
+def compile_model(optimizer=keras.optimizers.Adadelta(), neurons1 = 400):
     # create the mode
-    model=create_DNN()
+    model=create_DNN(neurons1)
     # compile the model
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=optimizer,
@@ -133,7 +133,7 @@ print('Model compiled successfully and ready to be trained.')
 
 # training parameters
 batch_size = 64
-epochs = 15
+epochs = 10
 
 # create the deep neural net
 model_DNN=compile_model(optimizer = keras.optimizers.Nadam())
@@ -175,8 +175,11 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 plt.show()
 
-# %% Modify hyperparameters
+# %% Find best optimiser
 
+# Seems to be different every time
+
+tf.random.set_seed(seed)
 epochs = 5
 
 optimizers = [keras.optimizers.SGD(),
@@ -197,9 +200,48 @@ for i, optimizer in enumerate(optimizers):
             validation_data=(X_test, Y_test))
   
   score = model_DNN.evaluate(X_test, Y_test, verbose=1)
-  test_accuracy[i] = history.history['val_accuracy'][-1]
+  test_accuracy[i] = score[1]
   
-# %%
-plt.figure()
-plt.plot(range(len(optimizers)),test_accuracy, "o")
+plt.figure()  
+plt.bar(range(len(optimizers)),test_accuracy, 
+        label = ["SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Adam", "Nadam"])
+plt.ylabel("Accuracy on Test Data")
+plt.ylim(0.9, 1)
+plt.xlabel("Optimiser")
+
 print("Optimiser {} performs the best".format(np.arange(len(optimizers))[test_accuracy == max(test_accuracy)]))
+
+# %% Find best number of neurons on first dense layer
+import time
+
+# training parameters
+batch_size = 64
+epochs = 5
+
+neurons_list = np.arange(50, 1000, 100)
+test_accuracy = np.zeros(len(neurons_list))
+
+for i, neurons in enumerate(neurons_list):
+  tic = time.process_time()
+  # create the deep neural net
+  model_DNN=compile_model(optimizer = keras.optimizers.Nadam(), neurons1 = neurons)
+  
+  # train DNN and store training info in history
+  history=model_DNN.fit(X_train, Y_train,
+            batch_size=batch_size,
+            epochs=epochs,
+            verbose=0,
+            validation_data=(X_test, Y_test))
+  
+  score = model_DNN.evaluate(X_test, Y_test, verbose=0)
+  test_accuracy[i] = score[1]
+  toc = time.process_time()
+  print("finished {} in {} seconds".format(i, toc-tic))
+  
+plt.figure()
+plt.plot(neurons_list,test_accuracy, )
+plt.ylabel("Accuracy on Test Data")
+plt.ylim(0.9, 1)
+plt.xlabel("# Neutrons in first Dense Layer")
+
+#print("Optimiser {} performs the best".format(np.arange(len(optimizers))[test_accuracy == max(test_accuracy)]))
