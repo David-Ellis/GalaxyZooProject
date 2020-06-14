@@ -73,15 +73,17 @@ print("Out of all {} samples we choose {} samples for learning our algorithms.".
 # we create a new array of labels with binary values 0 (yes) and 1 (no) for hard classification
 spiral_bin = np.zeros(spiral_num*2).reshape(spiral_num,2)
 num_spiral = 0 #Number of spiral galaxies
+spiral_soft = np.zeros(spiral_num*2).reshape(spiral_num,2) #soft classifier (no normalisation because the value already corresponds to the probability that it is or is not a spiral)
 for i in range(spiral_num):
     index = np.argmax(spiral_class[i,:]) #is either zero (it is a spiral) or one (no spiral)
     spiral_bin[i, index] = 1 #creates a list with [spiral, no spiral]
+    spiral_soft[i,0] = spiral_class[i,0]        # [1,      0]
+    spiral_soft[i,1] = spiral_class[i,1]        # [0,      1]...
     if(index == 0):
-        num_spiral += 1                         # [1,      0]
-                                                # [0,      1]...
+        num_spiral += 1
 
 
-#print("{} are Spiral Galaxies and {} not".format(num_spiral,spiral_num - num_spiral))
+print("{} are Spiral Galaxies and {} not".format(num_spiral,spiral_num - num_spiral))
 
 """
 #Which Galaxies could be used to increase the no spiral labels?
@@ -113,8 +115,10 @@ def rgb2gray(filepath):
         gray_img = gray_img[start:stop, start:stop]
     if (downsampling == True):
         gray_img = downscale_local_mean(gray_img, (ds_param, ds_param))
+    if (normalising == True):
+        gray_img = (gray_img - np.mean(gray_img)) / (np.max(gray_img) - np.mean(gray_img))
     if (denoising == True):
-        gray_img = denoise_tv_chambolle(gray_img, weight = 5)
+        gray_img = denoise_tv_chambolle(gray_img, weight = 0.02)
     if (contouring == True):
         try:
             thresh = filters.threshold_minimum(gray_img)
@@ -124,6 +128,11 @@ def rgb2gray(filepath):
         gray_img = gray_img > thresh
     gray_img = gray_img.flatten()
     return gray_img
+
+def plot_original(filepath):
+    img = imread(filepath)
+    img = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+    plt.imshow(img, cmap = 'binary_r')
 
 def plot_gray_img(img,scale):
     img = img.reshape(scale,scale)
@@ -144,32 +153,23 @@ imageNames = spiral_id #over which images do you want to loop
 if not os.path.isdir("spiral_images"):
     os.makedirs("spiral_images")
 
-for k in range(0,50,5):
+for k in range(1,501,50):
     #shows an example image before looping over all images
     fig1=plt.figure()
     fileName = path + "/" + make_filename(imageNames[k])
     test_img1 = rgb2gray(fileName)
     fig1 = plot_gray_img(test_img1, pixel_param)
     plt.title("resized")
+    plt.show()
+    plt.close(fig1)
     if(scaling):          #not very nicely implemented but it fulfills its purpose
         fig2 = plt.figure()
-        scaling = False
-        #downsampling = False
-        #denoising = False
-        #contouring = False
         fileName = path + "/" + make_filename(imageNames[k])
-        test_img2 = rgb2gray(fileName)
-        plot_gray_img(test_img2, 424)
+        test_img2 = plot_original(fileName)
+
         plt.title("original")
-        scaling = True
-        #downsampling = True
-        #denoising = True
-        #contouring = True
         plt.show()
         plt.close(fig2)
-    else:
-            plt.show()
-    plt.close(fig1)
 
 imgsInChunk = len(imageNames)//num_chunks
 print("There are {} images in each of the {} chunks".format(imgsInChunk, num_chunks))
@@ -185,13 +185,14 @@ for i in range(num_chunks):
         conv_Img = rgb2gray(fileName)
         tmpStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
         tmpStore[j,1:] = conv_Img               #the remaining entries are the pixels
-        #print("{} of {} complete".format(j+1, imgsInChunk), end = '\r')
+        print("{} of {} complete".format(j+1, imgsInChunk), end = '\r')
 
     np.save("spiral_images/images{}.npy".format(i), tmpStore)
     print(" complete \n")
 
 
 np.save("spiral_images/bin_labels.npy", spiral_bin)
+np.save("spiral_images/soft_labels.npy", spiral_soft)
 np.save("spiral_images/indices.npy", spiral_ind)
 
     #print(tmpStore[1])
