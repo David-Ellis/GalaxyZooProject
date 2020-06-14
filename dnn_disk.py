@@ -32,6 +32,24 @@ def normaliseY(Y):
     Y[i] = group/np.sum(group)
   return Y
 
+def classDisribution(Y):
+  '''Determine how many objects belong to which class'''
+  count = np.zeros(len(Y.T))
+  
+  for i, nums in enumerate(Y):
+    count[nums == max(nums)]+=1
+  
+  return count
+    
+def plotClassDist(Y):
+  counts = classDisribution(Y)
+  plt.figure()
+  plt.bar(range(len(Y.T)), counts)
+  plt.xticks(range(len(Y.T)))
+  plt.ylabel("# in class")
+  plt.xlabel("class")
+  plt.show()
+  
 # input image dimensions
 num_classes = 2 # 10 digits
 
@@ -39,6 +57,8 @@ img_rows, img_cols = 45, 45 # number of pixels
 
 X = np.load("disk_images/images0.npy")
 Y = np.load("disk_images/classes0.npy")
+
+plotClassDist(Y)
 
 Y = normaliseY(Y)
 
@@ -154,15 +174,15 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 plt.show() 
 
-# %% Plot accuracy over time
+# %% Plot accuracy over epochs
 
 # evaluate model
 score = model_DNN.evaluate(X_test, Y_test, verbose=1)
 
 # print performance
 print()
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+print('Test loss: {:.3}'.format(score[0]))
+print('Test accuracy: {:.3}'.format(score[1]))
 
 # look into training history
 
