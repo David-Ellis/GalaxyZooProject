@@ -108,7 +108,12 @@ def rgb2gray(filepath):
     returns vector
     '''
     img = imread(filepath)
-    gray_img = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+    if (gray):
+        gray_img = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+    else:
+        gray_img = np.asarray(img)
+        gray_img = gray_img.astype('float32')
+
     if (scaling == True):
         start = 424//2 - scaling_param // 2
         stop = 424//2 + scaling_param // 2
@@ -116,7 +121,12 @@ def rgb2gray(filepath):
     if (downsampling == True):
         gray_img = downscale_local_mean(gray_img, (ds_param, ds_param))
     if (normalising == True):
-        gray_img = (gray_img - np.mean(gray_img)) / (np.max(gray_img) - np.mean(gray_img))
+        if (gray):
+            gray_img = (gray_img - np.min(gray_img)) / (np.max(gray_img) - np.min(gray_img))
+        else:
+            gray_img[:,:,0] = (gray_img[:,:,0] - np.mean(gray_img[:,:,0])) / (np.max(gray_img[:,:,0]) - np.mean(gray_img[:,:,0]))
+            gray_img[:,:,1] = (gray_img[:,:,1] - np.mean(gray_img[:,:,1])) / (np.max(gray_img[:,:,1]) - np.mean(gray_img[:,:,1]))
+            gray_img[:,:,2] = (gray_img[:,:,2] - np.mean(gray_img[:,:,2])) / (np.max(gray_img[:,:,2]) - np.mean(gray_img[:,:,2]))
     if (denoising == True):
         gray_img = denoise_tv_chambolle(gray_img, weight = 0.02)
     if (contouring == True):
@@ -131,12 +141,16 @@ def rgb2gray(filepath):
 
 def plot_original(filepath):
     img = imread(filepath)
-    img = np.dot(img[...,:3], [0.299, 0.587, 0.144])
+    #img = np.dot(img[...,:3], [0.299, 0.587, 0.144])
     plt.imshow(img, cmap = 'binary_r')
 
 def plot_gray_img(img,scale):
-    img = img.reshape(scale,scale)
-    plt.imshow(img, cmap = "binary_r")
+    if(gray):
+        img = img.reshape(scale,scale)
+        plt.imshow(img, cmap = "binary_r")
+    else:
+        img = img.reshape(scale,scale,channels)
+        plt.imshow(img, cmap = "binary_r")
 
 
 # The images are split up into num_chunks batches and treated separetaley
@@ -158,6 +172,7 @@ for k in range(1,501,50):
     fig1=plt.figure()
     fileName = path + "/" + make_filename(imageNames[k])
     test_img1 = rgb2gray(fileName)
+    print(test_img1.shape)
     fig1 = plot_gray_img(test_img1, pixel_param)
     plt.title("resized")
     plt.show()
@@ -178,7 +193,7 @@ print("There are {} images in each of the {} chunks".format(imgsInChunk, num_chu
 for i in range(num_chunks):
     print("Chunk {}/{}:".format(i+1, num_chunks))
 
-    tmpStore = np.zeros((imgsInChunk, pixel_param * pixel_param + 1))
+    tmpStore = np.zeros((imgsInChunk, (pixel_param * pixel_param * channels) + 1))
     for j in range(imgsInChunk):
         gal_index = i*imgsInChunk + j
         fileName = path + "/" + make_filename(imageNames[gal_index])
