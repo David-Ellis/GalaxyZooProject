@@ -1,7 +1,8 @@
 #global variables for reading and ploting images
-gray = False
+question = 'round'
+gray = True
 scaling = True
-downsampling = False
+downsampling = True
 normalising = True
 denoising = False
 contouring = False
@@ -14,7 +15,7 @@ else:
     scaling_param = 424 #necessary for the plot function
 pixel_param = scaling_param
 if(downsampling == True): # Reduces image resolution
-    ds_param = 4
+    ds_param = 2
     pixel_param = scaling_param//ds_param
 else:
     ds_param = 1
@@ -24,5 +25,5 @@ if (gray):
 else:
     channels = 3
 
-num_chunks = 3 #Increase this if you get a memory error
+num_chunks = 4 #Increase this if you get a memory error
 print_RAM = False
