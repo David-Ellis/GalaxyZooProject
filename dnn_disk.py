@@ -59,6 +59,27 @@ def plotClassDist(Y):
   plt.xlabel("class")
   plt.show()
   
+def splitData(X, Y, trainingPercentage):
+  ''' Randomly splits data into training set and test set
+  '''
+  Y = normaliseY(Y)
+  totalImages = len(Y)
+  rng = np.random.default_rng()
+  trainingMask = rng.choice(totalImages, size=int(trainingPercentage*totalImages), 
+                            replace=False)
+  
+  X_train = X[trainingMask,1:]
+  X_test = np.delete(X,trainingMask, axis = 0)[:,1:]
+  
+  Y_train = Y[trainingMask]
+  Y_test = np.delete(Y,trainingMask, axis = 0)
+  
+  # cast floats to single precesion
+  X_train = X_train.astype('float32')
+  X_test = X_test.astype('float32')
+  
+  return X_train, Y_train, X_test, Y_test
+  
 # input image dimensions
 num_classes = 2 # 10 digits
 
@@ -69,26 +90,7 @@ Y = np.load("disk_images/classes0.npy")
 
 plotClassDist(Y)
 
-Y = normaliseY(Y)
-
-totalImages = len(Y)
-
-# Get array of random non-repeating indicies of length 
-# trainingPercentage*totalImages
-
-rng = np.random.default_rng()
-trainingMask = rng.choice(totalImages, size=int(trainingPercentage*totalImages), 
-                          replace=False)
-
-X_train = X[trainingMask,1:]
-X_test = np.delete(X,trainingMask, axis = 0)[:,1:]
-
-Y_train = Y[trainingMask]
-Y_test = np.delete(Y,trainingMask, axis = 0)
-
-# cast floats to single precesion
-X_train = X_train.astype('float32')
-X_test = X_test.astype('float32')
+X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
 
 # look at an example of data point
 plotExample(X_train, Y_train, 150)
@@ -111,10 +113,12 @@ def create_DNN(neurons1, neurons2):
     # instantiate model
     model = Sequential()
     # add a dense all-to-all relu layer
-    model.add(Dense(neurons1,input_shape=(img_rows*img_cols,), activation='relu'))
+    if neurons1 > 0:
+      model.add(Dense(neurons1,input_shape=(img_rows*img_cols,), activation='relu'))
     # add a dense all-to-all relu layer
     if neurons2 > 0:
       model.add(Dense(100, activation='relu'))
+      
     # apply dropout with rate 0.5
     model.add(Dropout(0.5))
     # soft-max layer
@@ -228,7 +232,7 @@ batch_size = 64
 epochs = 5
 retest = 10
 
-neurons_list1 = np.linspace(50, 1000, 10)
+neurons_list1 = np.linspace(0, 1000, 10)
 neurons_list2 = np.array([0, 200, 400])
 
 for j, neurons2 in enumerate(neurons_list2):
@@ -246,6 +250,9 @@ for j, neurons2 in enumerate(neurons_list2):
     accuracies = np.zeros(retest)
     
     for j in range(retest):
+      # Get new data split
+      X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
+      
       history=model_DNN.fit(X_train, Y_train,
                 batch_size=batch_size,
                 epochs=epochs,
@@ -259,7 +266,7 @@ for j, neurons2 in enumerate(neurons_list2):
     test_accuracy_upper[i] = np.percentile(accuracies, 84.1)
     test_accuracy_lower[i] = np.percentile(accuracies, 25.9)
     toc = time.perf_counter()
-    print("finished {} in {} seconds".format(i, toc-tic))
+    print("finished {} in {:.3} seconds".format(i, toc-tic))
   np.save("data/num_neurons_test_{}n2".format(neurons2), 
           [neurons_list1, test_accuracy_mean, test_accuracy_upper, 
            test_accuracy_lower])
@@ -291,9 +298,3 @@ plt.savefig("figures/disk_num_neurons_noSecondLayer.pdf")
 #print("Optimiser {} performs the best".format(np.arange(len(optimizers))[test_accuracy == max(test_accuracy)]))
 
 
-#%% time test
-
-tic = time.perf_counter()
-time.sleep(3)
-toc = time.perf_counter()
-print(toc-tic)
