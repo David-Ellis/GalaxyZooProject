@@ -81,12 +81,15 @@ def splitData(X, Y, trainingPercentage):
   return X_train, Y_train, X_test, Y_test
   
 # input image dimensions
-num_classes = 2 # 10 digits
+
+mode = "disk" # "bulge"
 
 img_rows, img_cols = 45, 45 # number of pixels 
 
-X = np.load("disk_images/images0.npy")
-Y = np.load("disk_images/classes0.npy")
+X = np.load(mode + "_images/images0.npy")
+Y = np.load(mode + "_images/classes0.npy")
+
+num_classes = len(Y.T) # 10 digits
 
 plotClassDist(Y)
 
@@ -106,7 +109,6 @@ print(X_test.shape[0], 'test samples')
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout#, Flatten
-#from keras.layers import Conv2D, MaxPooling2D
 
 
 def create_DNN(neurons1, neurons2):
@@ -286,7 +288,7 @@ for j, neurons2 in enumerate(neurons_list2):
     test_accuracy_lower[i] = np.percentile(accuracies, 25.9)
     toc = time.perf_counter()
     print("finished {} in {:.3} seconds".format(i, toc-tic))
-  np.save("data/num_neurons_test_{}n2".format(neurons2), 
+  np.save("data/" + mode + "_num_neurons_test_{}n2".format(neurons2), 
           [neurons_list1, test_accuracy_mean, test_accuracy_upper, 
            test_accuracy_lower])
     
@@ -313,7 +315,7 @@ plt.ylabel("Accuracy on Test Data")
 plt.ylim(0.9, 1)
 plt.xlabel("# Neurons in first Dense Layer, $n_1$")
 plt.tight_layout()
-plt.savefig("figures/disk_num_neurons.pdf")
+plt.savefig("figures/"+ mode +"_num_neurons.pdf")
 
 
 #%% Investigate impact of having more layers
@@ -386,7 +388,7 @@ for i, layers in enumerate(layers_list):
   toc = time.perf_counter()
   print("finished {} in {:.3} seconds".format(i, toc-tic))
   
-np.save("data/disk_num_layers_test", 
+np.save("data/"+ mode +"_num_layers_test", 
           [layers_list, test_accuracy_mean, test_accuracy_upper, 
            test_accuracy_lower])
 
@@ -412,4 +414,4 @@ plt.ylabel("Accuracy on Test Data")
 plt.ylim(0.95, 1)
 plt.xlabel("# Layers")
 plt.tight_layout()
-plt.savefig("figures/disk_num_layers.pdf")
+plt.savefig("figures/"+ mode + "_num_layers.pdf")

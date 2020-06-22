@@ -66,16 +66,16 @@ good_samp = (good_samp >= 0.8)
 
 # class_disk contains labels to question: 
 # "Could this be a disk viewed edge-on?" - Yes / No
-disk_class = class9[good_samp]
-disk_id = galaxy_id[good_samp]         #contains the corresponding galaxy IDs
-disk_ind = [i for i in range(l) if (good_samp[i] == True)] #contains the index number in the galaxy_id
-disk_num = len(disk_ind)
-print("Out of all {} samples we choose {} samples for teaching our algorithms.".format(l, disk_num))
+bulge_class = class9[good_samp]
+bulge_id = galaxy_id[good_samp]         #contains the corresponding galaxy IDs
+bulge_ind = [i for i in range(l) if (good_samp[i] == True)] #contains the index number in the galaxy_id
+bulge_num = len(bulge_ind)
+print("Out of all {} samples we choose {} samples for teaching our algorithms.".format(l, bulge_num))
 
 # we create a new array of labels with binary values 0 and 1 for hard classification
-disk_bin = np.zeros(disk_num)
-for i in range(disk_num):
-    disk_bin[i] = np.argmax(disk_class[i,:])
+bulge_bin = np.zeros(bulge_num)
+for i in range(bulge_num):
+    bulge_bin[i] = np.argmax(bulge_class[i,:])
 
 
 # %% Define desired scaling
@@ -101,8 +101,8 @@ else:
 # to prevent memory overflow
 
 path = "./galaxy_zoo_images/images_training_rev1"
-num_chunks = 10 #Increase this if you get a memory error
-imageNames = disk_id #over which images do you want to loop
+num_chunks = 1 #Increase this if you get a memory error
+imageNames = bulge_id #over which images do you want to loop
 
 # %% Example image
 fig1=plt.figure()
@@ -140,14 +140,26 @@ print("There are {} images in each of the {} chunks".format(imgsInChunk, num_chu
 for i in range(num_chunks):
     print("Chunk {}/{}:".format(i+1, num_chunks), end = " ")
 
-    tmpStore = np.zeros((imgsInChunk, pixel_param * pixel_param + 1))
+    # Temporary image storage
+    tmpImgStore = np.zeros((imgsInChunk, pixel_param * pixel_param + 1))
+    # Temporary class storage
+    tmpClassStore = np.zeros((imgsInChunk, 3))
     for j in range(imgsInChunk):
+        # determine image file name
         gal_index = i*imgsInChunk + j
         fileName = path + "/" + make_filename(imageNames[gal_index])
+        # process image
         conv_Img = rgb2gray(fileName)
-        tmpStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
-        tmpStore[j,1:] = conv_Img               #the remaining entries are the pixels
+        # store image
+        tmpImgStore[j,0] = imageNames[gal_index]   #first entry is the galaxy id
+        tmpImgStore[j,1:] = conv_Img               #the remaining entries are the pixels
+        # store class data
+        tmpClassStore[j,:] = [bulge_class[gal_index,0], 
+                              bulge_class[gal_index,1],
+                              bulge_class[gal_index,2]]
 
-    np.save("disk_images/images{}.npy".format(i), tmpStore)
+    np.save("bulge_images/images{}.npy".format(i), tmpImgStore)
+    np.save("bulge_images/classes{}.npy".format(i), tmpClassStore)
     print(" Complete.")
+
 
