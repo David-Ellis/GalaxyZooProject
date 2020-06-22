@@ -128,8 +128,8 @@ print('Model architecture created successfully!')
 
 # %% Choose the Optimizer and the Cost Function
 
-def compile_model(optimizer=keras.optimizers.Adadelta(), neurons1 = 600,
-                  neurons2 = 100):
+def compile_model(optimizer=keras.optimizers.Adadelta(), neurons1 = 200,
+                  neurons2 = 200):
     # create the mode
     model=create_DNN(neurons1, neurons2)
     # compile the model
@@ -186,43 +186,63 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 plt.show()
 
+##############################################################################
 # %% Find best optimiser
 
 # Seems to be different every time
 
-tf.random.set_seed(seed)
-epochs = 6
-
+retest = 20
+epochs = 5
 optimizers = [keras.optimizers.SGD(),
               keras.optimizers.RMSprop(), keras.optimizers.Adagrad(), 
               keras.optimizers.Adadelta(), keras.optimizers.Adamax(),
               keras.optimizers.Adam(), keras.optimizers.Nadam()]
 
 test_accuracy = np.zeros(len(optimizers))
+
+test_accuracy_median = np.zeros((len(optimizers)))
+test_accuracy_upper = np.zeros((len(optimizers)))
+test_accuracy_lower = np.zeros((len(optimizers)))
+
 for i, optimizer in enumerate(optimizers):
 
-  model_DNN=compile_model(optimizer = optimizer, neurons1 = 600)
+  model_DNN=compile_model(optimizer = optimizer)
   
-  # train DNN and store training info in history
-  history=model_DNN.fit(X_train, Y_train,
-            batch_size=batch_size,
-            epochs=epochs,
-            verbose=1,
-            validation_data=(X_test, Y_test))
-  
-  score = model_DNN.evaluate(X_test, Y_test, verbose=1)
-  test_accuracy[i] = score[1]
-  
-plt.figure()  
-plt.bar(range(len(optimizers)),test_accuracy)
+  accuracies = np.zeros(retest)
+  for j in range(retest):
+    X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
+    # train DNN and store training info in history
+    history=model_DNN.fit(X_train, Y_train,
+              batch_size=batch_size,
+              epochs=epochs,
+              verbose=0,
+              validation_data=(X_test, Y_test))
+    
+    score = model_DNN.evaluate(X_test, Y_test, verbose=0)
+    accuracies[j] = score[1]
+    
+  print(i+1, "of", len(optimizers), "complete")
+  test_accuracy_median[i] = np.median(accuracies)
+  test_accuracy_upper[i] = np.percentile(accuracies, 84.1)
+  test_accuracy_lower[i] = np.percentile(accuracies, 25.9)
+    
+# %% Plot
+    
+y_err1 = (test_accuracy_upper-test_accuracy_median)/test_accuracy_median
+y_err2 = (test_accuracy_median - test_accuracy_lower)/test_accuracy_median
+    
+plt.figure(figsize = (7, 5))  
+plt.bar(range(len(optimizers)),test_accuracy_median, 
+        yerr = [y_err1, y_err2], capsize = 7)
 labels = ["SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Adam", "Nadam"]
-plt.xticks(range(len(optimizers)), labels)
+plt.xticks(range(len(optimizers)), labels,rotation=45, size  = 12)
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.9, 1)
+plt.ylim(0.95, 1.01)
 plt.xlabel("Optimiser")
+plt.tight_layout()
 
-print("Optimiser {} performs the best".format(np.arange(len(optimizers))[test_accuracy == max(test_accuracy)]))
 
+##############################################################################
 # %% Find best number of neurons on first dense layer
 import time
 
@@ -331,7 +351,7 @@ def compile_model2(optimizer=keras.optimizers.Adadelta(), layers = 2,
 # training parameters
 batch_size = 64
 epochs = 5
-retest = 10
+retest = 20
 
 layers_list = np.array([1,2,3,4,5,6,7])
 
@@ -378,7 +398,7 @@ error_colors = ["#99bbff", "#ffe066", "#80ffaa"]
 plt.figure()
 
 layers_list, test_accuracy_mean, test_accuracy_upper, test_accuracy_lower \
-  = np.load("data/num_layers_test.npy")
+  = np.load("data/disk_num_layers_test.npy")
 plt.fill_between(layers_list, test_accuracy_lower, test_accuracy_upper, 
                  color = error_colors[0], alpha = 0.5)
 plt.plot(layers_list, test_accuracy_mean, "-o", lw = 2, 
