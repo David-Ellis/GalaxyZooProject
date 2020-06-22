@@ -1,13 +1,13 @@
 #global variables for reading and ploting images
-question = 'round'
+question = 'spiral'
 gray = True
 scaling = True
-downsampling = True
+downsampling = False
 normalising = True
 denoising = False
 contouring = False
-PCAnalysis = False
-components = 500
+PCAnalysis = True
+components = 800
 if( scaling == True ):
     scaling_param = 180 # only change to even numbers which can be divided by ds_param
 
