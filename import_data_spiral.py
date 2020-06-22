@@ -220,7 +220,7 @@ if question == 'round':
 if not os.path.isdir(img_folder):
     os.makedirs(img_folder)
 
-for k in range(1,1001,500):
+for k in range(1,1001,200):
     #shows an example image before looping over all images
     fig1=plt.figure()
     fileName = path + "/" + make_filename(imageNames[k])
@@ -288,7 +288,7 @@ if question == 'spiral':
         imgEnd = imgStart + imgsInChunk
         np.save("{}/bin_labels{}.npy".format(img_folder, i), spiral_bin[imgStart : imgEnd, :])
         np.save("{}/soft_labels{}.npy".format(img_folder, i), spiral_soft[imgStart : imgEnd, :])
-        np.save("{}/indices{}.npy".format(img_folder, i), spiral_ind[imgStart : imgEnd, :])
+        np.save("{}/indices{}.npy".format(img_folder, i), spiral_ind[imgStart : imgEnd])
                   
     print("There are {} images in each of the {} chunks".format(imgsInChunk, num_chunks))
     
