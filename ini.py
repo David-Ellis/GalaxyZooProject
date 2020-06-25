@@ -1,13 +1,13 @@
 #global variables for reading and ploting images
-question = 'spiral'
+question = 'round'
 gray = True
 scaling = True
-downsampling = False
+downsampling = True
 normalising = True
 denoising = False
 contouring = False
 PCAnalysis = True
-components = 800
+components = 750
 if( scaling == True ):
     scaling_param = 180 # only change to even numbers which can be divided by ds_param
 
@@ -25,5 +25,5 @@ if (gray):
 else:
     channels = 3
 
-num_chunks = 4 #Increase this if you get a memory error
+num_chunks = 1 #Increase this if you get a memory error
 print_RAM = False
