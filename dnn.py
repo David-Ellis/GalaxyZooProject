@@ -70,8 +70,6 @@ def splitData(X, Y, trainingPercentage):
   rng = np.random.default_rng()
   trainingMask = rng.choice(totalImages, size=int(trainingPercentage*totalImages), 
                             replace=False)
-  
-  print(X.shape)
   X_train = X[trainingMask,1:]
   X_test = np.delete(X,trainingMask, axis = 0)[:,1:]
   
@@ -228,9 +226,63 @@ conMat = ConfusionMatrix(model_DNN, X_test, Y_test)
 print(conMat)
 plotConfusionMatrix(conMat, class_names = class_names, cmap = "GnBu")
 
+##############################################################################
+# %% Find best number of epochs
+
+# Seems to be different every time
+
+retest = 50
+num_epochs = 50
+
+test_accuracies = np.zeros((retest, num_epochs))
+
+test_accuracy_median = np.zeros(num_epochs)
+test_accuracy_upper = np.zeros(num_epochs)
+test_accuracy_lower = np.zeros(num_epochs)
+
+for i in range(retest):
+
+  model_DNN=compile_model()
+  
+  X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
+  # train DNN and store training info in history
+  history=model_DNN.fit(X_train, Y_train,
+            batch_size=batch_size,
+            epochs=num_epochs,
+            verbose=0,
+            validation_data=(X_test, Y_test))
+  test_accuracies[i,:] = history.history['val_accuracy']
+  print(i+1, "of", retest, "complete.")
+    
+test_accuracy_median = np.median(test_accuracies, axis = 0)
+test_accuracy_upper = np.percentile(test_accuracies, 84.1, axis = 0)
+test_accuracy_lower = np.percentile(test_accuracies, 25.9, axis = 0)
+
+#%% Plot
+
+line_colors = ["b", "#ffcc00", "g"]
+error_colors = ["#99bbff", "#ffe066", "#80ffaa"]
+
+plt.figure()
+
+plt.fill_between(range(num_epochs), test_accuracy_lower, test_accuracy_upper, 
+                 color = error_colors[0], alpha = 0.5)
+plt.plot(range(num_epochs), test_accuracy_median, "-o", lw = 2, 
+           color = line_colors[0])
+plt.plot(range(num_epochs), test_accuracy_lower, ":", lw = 2, 
+           color = error_colors[0])
+plt.plot(range(num_epochs), test_accuracy_upper, ":", lw = 2, 
+           color = error_colors[0])
+
+plt.ylabel('model accuracy')
+plt.xlabel('epoch')
+plt.tight_layout()
+plt.savefig("figures/"+ mode +"_num_neurons.pdf")
+
+
 
 ##############################################################################
-  # %% Find best optimiser
+# %% Find best optimiser
 
 # Seems to be different every time
 
@@ -283,6 +335,7 @@ plt.ylabel("Accuracy on Test Data")
 plt.ylim(0.7, 1.01)
 plt.xlabel("Optimiser")
 plt.tight_layout()
+
 
 
 ##############################################################################
