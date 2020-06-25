@@ -57,6 +57,7 @@ def plotClassDist(Y):
   plt.xticks(range(len(Y.T)))
   plt.ylabel("# in class")
   plt.xlabel("class")
+  plt.tight_layout()
   plt.show()
   
 def splitData(X, Y, trainingPercentage):
@@ -68,6 +69,7 @@ def splitData(X, Y, trainingPercentage):
   trainingMask = rng.choice(totalImages, size=int(trainingPercentage*totalImages), 
                             replace=False)
   
+  print(X.shape)
   X_train = X[trainingMask,1:]
   X_test = np.delete(X,trainingMask, axis = 0)[:,1:]
   
@@ -146,10 +148,10 @@ print('Model compiled successfully and ready to be trained.')
 
 # training parameters
 batch_size = 64
-epochs = 10
+epochs = 6
 
 # create the deep neural net
-model_DNN=compile_model(optimizer = keras.optimizers.Nadam())
+model_DNN=compile_model(optimizer = keras.optimizers.Adamax())
 
 # train DNN and store training info in history
 history=model_DNN.fit(X_train, Y_train,
@@ -187,6 +189,23 @@ plt.ylabel('model loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
 plt.show()
+
+# %% Plot confusion matrix
+
+def ConfusionMatrix(model, X, Y):
+  num_classes = len(Y.T)
+  conMat = np.zeros((num_classes, num_classes))
+  Ypred = model.predict(X)
+  
+  for Yr, Yp in zip(Y, Ypred):
+    realIndex = np.where(Yr == max(Yr))[0][0]
+    predIndex = np.where(Yp == max(Yp))[0][0]
+    conMat[realIndex, predIndex] += 1
+    
+  return conMat
+    
+print("Confusion matrix:")
+print(ConfusionMatrix(model_DNN, X[:,1:], Y))
 
 ##############################################################################
 # %% Find best optimiser
@@ -239,7 +258,7 @@ plt.bar(range(len(optimizers)),test_accuracy_median,
 labels = ["SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Adam", "Nadam"]
 plt.xticks(range(len(optimizers)), labels,rotation=45, size  = 12)
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.95, 1.01)
+plt.ylim(0.7, 1.01)
 plt.xlabel("Optimiser")
 plt.tight_layout()
 
@@ -300,7 +319,8 @@ error_colors = ["#99bbff", "#ffe066", "#80ffaa"]
 
 plt.figure()
 for j, neurons2 in enumerate(neurons_list2):
-  neurons_list1, test_accuracy_mean, test_accuracy_upper, test_accuracy_lower = np.load("data/num_neurons_test_{}n2.npy".format(neurons2))
+  neurons_list1, test_accuracy_mean, test_accuracy_upper, test_accuracy_lower \
+    = np.load("data/" + mode + "_num_neurons_test_{}n2.npy".format(neurons2))
   plt.fill_between(neurons_list1, test_accuracy_lower, test_accuracy_upper, 
                  color = error_colors[j], alpha = 0.5)
   plt.plot(neurons_list1, test_accuracy_mean, "-o", lw = 2, 
@@ -310,9 +330,9 @@ for j, neurons2 in enumerate(neurons_list2):
   plt.plot(neurons_list1, test_accuracy_upper, ":", lw = 2, 
            color = error_colors[j])
 
-plt.legend()
+plt.legend(loc=1, fontsize = 14)
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.9, 1)
+plt.ylim(0.7, 1)
 plt.xlabel("# Neurons in first Dense Layer, $n_1$")
 plt.tight_layout()
 plt.savefig("figures/"+ mode +"_num_neurons.pdf")
@@ -400,7 +420,7 @@ error_colors = ["#99bbff", "#ffe066", "#80ffaa"]
 plt.figure()
 
 layers_list, test_accuracy_mean, test_accuracy_upper, test_accuracy_lower \
-  = np.load("data/disk_num_layers_test.npy")
+  = np.load("data/" + mode + "_num_layers_test.npy")
 plt.fill_between(layers_list, test_accuracy_lower, test_accuracy_upper, 
                  color = error_colors[0], alpha = 0.5)
 plt.plot(layers_list, test_accuracy_mean, "-o", lw = 2, 
@@ -411,7 +431,7 @@ plt.plot(layers_list, test_accuracy_upper, ":", lw = 2,
            color = error_colors[0])
 
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.95, 1)
+plt.ylim(0.7, 1)
 plt.xlabel("# Layers")
 plt.tight_layout()
 plt.savefig("figures/"+ mode + "_num_layers.pdf")
