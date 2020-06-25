@@ -2,7 +2,9 @@
 """
 Disk - Neural Network
 
- - Starting by rewritting mnist example
+ TODO:
+   - Add section to look at what number of epochs is statistically best
+   - Add section to look at what dropout rate is best
  
 """
 
@@ -84,7 +86,7 @@ def splitData(X, Y, trainingPercentage):
   
 # input image dimensions
 
-mode =  "bulge" # "disk" #
+mode =  "bulge" # "disk" # 
 
 img_rows, img_cols = 45, 45 # number of pixels 
 
@@ -148,7 +150,7 @@ print('Model compiled successfully and ready to be trained.')
 
 # training parameters
 batch_size = 64
-epochs = 6
+epochs = 50
 
 # create the deep neural net
 model_DNN=compile_model(optimizer = keras.optimizers.Adamax())
@@ -179,15 +181,7 @@ plt.plot(history.history['val_accuracy'])
 plt.ylabel('model accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='best')
-plt.show()
-
-plt.figure()
-# summarize history for loss
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.ylabel('model loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='best')
+plt.tight_layout()
 plt.show()
 
 # %% Plot confusion matrix
@@ -214,7 +208,7 @@ def plotConfusionMatrix(confusion_matrix, class_names = None, cmap = "Blues"):
   # Add numbers
   for i in range(len(confusion_matrix)):
     for j in range(len(confusion_matrix)):
-      ax.annotate(int(confusion_matrix[i, j]), (i, j), ha='center', 
+      ax.annotate(int(confusion_matrix[i, j]), (j, i), ha='center', 
                   va='center')
       #print()
   ax.set_xticks(range(num_classes))
@@ -228,6 +222,8 @@ def plotConfusionMatrix(confusion_matrix, class_names = None, cmap = "Blues"):
 
 print("Confusion matrix:")
 class_names = ["rounded", "boxy", "no bulge"]
+#class_names = ["disk", "no disk"]
+
 conMat = ConfusionMatrix(model_DNN, X_test, Y_test)
 print(conMat)
 plotConfusionMatrix(conMat, class_names = class_names, cmap = "GnBu")
@@ -363,7 +359,7 @@ plt.xlabel("# Neurons in first Dense Layer, $n_1$")
 plt.tight_layout()
 plt.savefig("figures/"+ mode +"_num_neurons.pdf")
 
-
+###########################################################################
 #%% Investigate impact of having more layers
 
 def create_DNN2(layers, neurons):
