@@ -84,7 +84,7 @@ def splitData(X, Y, trainingPercentage):
   
 # input image dimensions
 
-mode = "disk" # "bulge"
+mode =  "bulge" # "disk" #
 
 img_rows, img_cols = 45, 45 # number of pixels 
 
@@ -204,11 +204,37 @@ def ConfusionMatrix(model, X, Y):
     
   return conMat
     
+def plotConfusionMatrix(confusion_matrix, class_names = None, cmap = "Blues"):
+  fig, ax = plt.subplots()
+  ax.matshow(confusion_matrix, cmap = cmap)
+  ax.set_xlabel("Predicted")
+  ax.set_ylabel("Actual")
+  ax.xaxis.set_label_coords(0.5, 1.2)
+  
+  # Add numbers
+  for i in range(len(confusion_matrix)):
+    for j in range(len(confusion_matrix)):
+      ax.annotate(int(confusion_matrix[i, j]), (i, j), ha='center', 
+                  va='center')
+      #print()
+  ax.set_xticks(range(num_classes))
+  ax.set_yticks(range(num_classes))
+  
+  if class_names != None:
+    ax.set_xticklabels(class_names)
+    ax.set_yticklabels(class_names, rotation = 90, va = "center")
+  
+  plt.tight_layout()
+
 print("Confusion matrix:")
-print(ConfusionMatrix(model_DNN, X[:,1:], Y))
+class_names = ["rounded", "boxy", "no bulge"]
+conMat = ConfusionMatrix(model_DNN, X_test, Y_test)
+print(conMat)
+plotConfusionMatrix(conMat, class_names = class_names, cmap = "GnBu")
+
 
 ##############################################################################
-# %% Find best optimiser
+  # %% Find best optimiser
 
 # Seems to be different every time
 
