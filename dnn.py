@@ -35,7 +35,15 @@ def plotExample(X, Y, index):
   
   length = int(np.sqrt(len(X[index,:])))
   plt.matshow(X[index,:].reshape(length,length),cmap='binary')
-  plt.annotate("Y = {}".format(num), (2,40), size = 12)
+  
+  
+  print(num)
+  label = ""
+  for n in num:
+    label += "{:.2},".format(n)
+  label = label[:-1]
+  print(label)
+  plt.annotate("Y = [" + label + "]", (2,40), size = 12)
   plt.show()
   
 def normaliseY(Y):
@@ -100,7 +108,7 @@ def splitData(X, Y, trainingPercentage):
   
 # input image dimensions
 
-mode =  "disk" # "bulge_full" #  "bulge"#
+mode = "disk" # "bulge" #  "bulge_full" #  
 
 
 if mode == "bulge_full":
@@ -137,7 +145,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout#, Flatten
 
 
-def create_DNN(neurons1, neurons2):
+def create_DNN(neurons1 = 200, neurons2 = 200, dropout = 0.5):
     # instantiate model
     model = Sequential()
     # add a dense all-to-all relu layer
@@ -147,7 +155,8 @@ def create_DNN(neurons1, neurons2):
     if neurons2 > 0:
       model.add(Dense(neurons2, activation='relu'))
     # apply dropout with rate 0.5
-    model.add(Dropout(0.5))
+    if dropout > 0:
+      model.add(Dropout(dropout))
     # soft-max layer
     model.add(Dense(num_classes, activation='softmax'))
     return model
@@ -157,9 +166,9 @@ print('Model architecture created successfully!')
 # %% Choose the Optimizer and the Cost Function
 
 def compile_model(optimizer=keras.optimizers.Adadelta(), neurons1 = 200,
-                  neurons2 = 200):
+                  neurons2 = 200, dropout = 0.5):
     # create the mode
-    model=create_DNN(neurons1, neurons2)
+    model=create_DNN(neurons1, neurons2, dropout)
     # compile the model
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=optimizer,
@@ -331,7 +340,6 @@ plt.savefig("figures/"+ mode +"_num_epochs.pdf")
 ##############################################################################
 # %% Find best optimiser
 
-# Seems to be different every time
 batch_size = 64
 retest = 20
 epochs = 20
@@ -651,4 +659,65 @@ labels = ["not normalised", "normalised"]
 plt.xticks(range(2), labels,rotation=0, size  = 18)
 plt.ylabel("Accuracy on Test Data")
 plt.ylim(0.70, 0.85)
+plt.tight_layout()
+
+##############################################################################
+# %% Investigate dropout rate
+
+# Seems to be different every time
+batch_size = 64
+retest = 20
+epochs = 50
+
+dropout_vals = np.linspace(0, 70, 8)
+test_accuracy = np.zeros(len(dropout_vals))
+
+test_accuracy_median = np.zeros((len(dropout_vals)))
+test_accuracy_upper = np.zeros((len(dropout_vals)))
+test_accuracy_lower = np.zeros((len(dropout_vals)))
+
+for i, dropout in enumerate(dropout_vals):
+
+  accuracies = np.zeros(retest)
+  for j in range(retest):
+    model_DNN=compile_model(dropout = dropout)
+    X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
+    # train DNN and store training info in history
+    history=model_DNN.fit(X_train, Y_train,
+              batch_size=batch_size,
+              epochs=epochs,
+              verbose=0,
+              validation_data=(X_test, Y_test))
+    
+    score = model_DNN.evaluate(X_test, Y_test, verbose=0)
+    accuracies[j] = score[1]
+    
+  print(i+1, "of", len(dropout_vals), "complete")
+  test_accuracy_median[i] = np.median(accuracies)
+  test_accuracy_upper[i] = np.percentile(accuracies, 84.1)
+  test_accuracy_lower[i] = np.percentile(accuracies, 25.9)
+
+
+np.save("data/" + mode + "_dropout_test", 
+          [dropout_vals, test_accuracy_median, test_accuracy_upper, 
+           test_accuracy_lower])
+
+# %% Plot
+line_colors = ["b", "#ffcc00", "g"]
+error_colors = ["#99bbff", "#ffe066", "#80ffaa"]
+
+dropout_vals, test_accuracy_mean, test_accuracy_upper, test_accuracy_lower \
+  = np.load("data/" + mode + "_dropout_test.npy")
+plt.fill_between(dropout_vals, test_accuracy_lower, test_accuracy_upper, 
+               color = error_colors[0], alpha = 0.5)
+plt.plot(dropout_vals, test_accuracy_mean, "-o", lw = 2, 
+         color = line_colors[0])
+plt.plot(dropout_vals, test_accuracy_lower, ":", lw = 2, 
+         color = error_colors[0])
+plt.plot(dropout_vals, test_accuracy_upper, ":", lw = 2, 
+         color = error_colors[0])
+
+plt.ylabel("Accuracy on Test Data")
+plt.xlabel("Dropout %")
+plt.ylim(0.75, 0.85)
 plt.tight_layout()
