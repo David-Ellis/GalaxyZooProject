@@ -82,7 +82,7 @@ for i in range(bulge_num):
 
 #global variables for reading and ploting images
 scaling = True
-downsampling = True
+downsampling = False
 
 if( scaling == True ):
     scaling_param = 180 # only change to even numbers which can be divided by ds_param
@@ -158,8 +158,8 @@ for i in range(num_chunks):
                               bulge_class[gal_index,1],
                               bulge_class[gal_index,2]]
 
-    np.save("bulge_images/images{}.npy".format(i), tmpImgStore)
-    np.save("bulge_images/classes{}.npy".format(i), tmpClassStore)
+    np.save("bulge_images/full_images{}.npy".format(i), tmpImgStore)
+    np.save("bulge_images/full_classes{}.npy".format(i), tmpClassStore)
     print(" Complete.")
 
 
