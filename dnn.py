@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Disk - Neural Network
-
- TODO:
-   - Add section to look at what number of epochs is statistically best
-   - Add section to look at what dropout rate is best
+Neural Network for classifying galaxy zoo images
  
 """
 
@@ -13,6 +9,8 @@ import keras
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import Dense, Dropout#, Flatten
 
 import matplotlib
 
@@ -141,11 +139,8 @@ print(X_test.shape[0], 'test samples')
 
 # %% Define Neural net and its Architecture
 
-from keras.models import Sequential
-from keras.layers import Dense, Dropout#, Flatten
-
-
-def create_DNN(neurons1 = 200, neurons2 = 200, dropout = 0.5):
+def create_DNN(neurons1 = 200, neurons2 = 200, dropout = 0.5, 
+               activation = "softmax"):
     # instantiate model
     model = Sequential()
     # add a dense all-to-all relu layer
@@ -158,17 +153,17 @@ def create_DNN(neurons1 = 200, neurons2 = 200, dropout = 0.5):
     if dropout > 0:
       model.add(Dropout(dropout))
     # soft-max layer
-    model.add(Dense(num_classes, activation='softmax'))
+    if activation != "None":
+      model.add(Dense(num_classes, activation=activation))
     return model
 
 print('Model architecture created successfully!')
 
-# %% Choose the Optimizer and the Cost Function
 
-def compile_model(optimizer=keras.optimizers.Adadelta(), neurons1 = 200,
-                  neurons2 = 200, dropout = 0.5):
+def compile_model(optimizer=keras.optimizers.Adamax(), neurons1 = 200,
+                  neurons2 = 200, dropout = 0.5, activation = "softmax"):
     # create the mode
-    model=create_DNN(neurons1, neurons2, dropout)
+    model=create_DNN(neurons1, neurons2, dropout, activation = activation)
     # compile the model
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=optimizer,
@@ -387,7 +382,7 @@ plt.bar(range(len(optimizers)),test_accuracy_median,
 labels = ["SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Adam", "Nadam"]
 plt.xticks(range(len(optimizers)), labels,rotation=45, size  = 12)
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.95*min(test_accuracy_lower), 1.05*max(test_accuracy_upper))
+plt.ylim(0.94, 0.98)
 plt.xlabel("Optimiser")
 plt.tight_layout()
 
@@ -396,14 +391,15 @@ plt.tight_layout()
 ##############################################################################
 # %% Find best number of neurons on first dense layer
 import time
+print("Finding best number of neurons on first dense layer")
 
 # training parameters
 batch_size = 64
-epochs = 30
+epochs = 10
 retest = 10
 
 neurons_list1 = np.linspace(0, 400, 5)
-neurons_list2 = np.array([0, 200, 400])
+neurons_list2 = np.array([0, 200])
 
 for j, neurons2 in enumerate(neurons_list2):
   test_accuracy_mean = np.zeros((len(neurons_list1)))
@@ -417,7 +413,7 @@ for j, neurons2 in enumerate(neurons_list2):
     
     # train DNN and store training info in history
     accuracies = np.zeros(retest)
-    
+    print("Retest: ", end = " ")
     for j in range(retest):
       model_DNN=compile_model(optimizer = keras.optimizers.Nadam(), 
                             neurons1 = int(neurons1), neurons2 = neurons2)
@@ -432,7 +428,8 @@ for j, neurons2 in enumerate(neurons_list2):
       
       score = model_DNN.evaluate(X_test, Y_test, verbose=0)
       accuracies[j] = score[1]
-      
+      print(j, end = " ")
+    print()
     test_accuracy_mean[i] = np.median(accuracies)
     test_accuracy_upper[i] = np.percentile(accuracies, 84.1)
     test_accuracy_lower[i] = np.percentile(accuracies, 25.9)
@@ -461,9 +458,9 @@ for j, neurons2 in enumerate(neurons_list2):
   plt.plot(neurons_list1, test_accuracy_upper, ":", lw = 2, 
            color = error_colors[j])
 
-plt.legend(loc=1, fontsize = 14)
+plt.legend(loc=4, fontsize = 14)
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.95*min(test_accuracy_lower), 1.05*max(test_accuracy_upper))
+plt.ylim(0.90, 0.98)
 plt.xlabel("# Neurons in first Dense Layer, $n_1$")
 plt.tight_layout()
 plt.savefig("figures/"+ mode +"_num_neurons.pdf")
@@ -505,8 +502,8 @@ import time
   
 # training parameters
 batch_size = 64
-epochs = 30
-retest = 20
+epochs = 10
+retest = 10
 
 layers_list = np.array([1,2,3,4,5,6,7])
 
@@ -566,7 +563,7 @@ plt.plot(layers_list, test_accuracy_upper, ":", lw = 2,
            color = error_colors[0])
 
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.725, 0.85)
+plt.ylim(0.92, 1)
 plt.xlabel("# Layers")
 plt.tight_layout()
 plt.savefig("figures/"+ mode + "_num_layers.pdf")
@@ -577,7 +574,7 @@ plt.savefig("figures/"+ mode + "_num_layers.pdf")
 # Seems to be different every time
 
 retest = 20
-num_epochs = 30
+num_epochs = 20
 
 ## NOT NORMALISED ## 
 test_accuracies = np.zeros(retest)
@@ -658,7 +655,7 @@ plt.bar(range(2),test_accuracy_median,
 labels = ["not normalised", "normalised"]
 plt.xticks(range(2), labels,rotation=0, size  = 18)
 plt.ylabel("Accuracy on Test Data")
-plt.ylim(0.70, 0.85)
+plt.ylim(0.9, 1)
 plt.tight_layout()
 
 ##############################################################################
@@ -666,8 +663,8 @@ plt.tight_layout()
 
 # Seems to be different every time
 batch_size = 64
-retest = 20
-epochs = 50
+retest = 40
+epochs = 10
 
 dropout_vals = np.linspace(0, 70, 8)
 test_accuracy = np.zeros(len(dropout_vals))
@@ -679,6 +676,7 @@ test_accuracy_lower = np.zeros((len(dropout_vals)))
 for i, dropout in enumerate(dropout_vals):
 
   accuracies = np.zeros(retest)
+  print(i, ") Retest ", end = "")
   for j in range(retest):
     model_DNN=compile_model(dropout = dropout)
     X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
@@ -691,8 +689,9 @@ for i, dropout in enumerate(dropout_vals):
     
     score = model_DNN.evaluate(X_test, Y_test, verbose=0)
     accuracies[j] = score[1]
+    print(j+1, end = ", ")
     
-  print(i+1, "of", len(dropout_vals), "complete")
+  print(": ",i+1, "of", len(dropout_vals), "complete")
   test_accuracy_median[i] = np.median(accuracies)
   test_accuracy_upper[i] = np.percentile(accuracies, 84.1)
   test_accuracy_lower[i] = np.percentile(accuracies, 25.9)
@@ -719,5 +718,5 @@ plt.plot(dropout_vals, test_accuracy_upper, ":", lw = 2,
 
 plt.ylabel("Accuracy on Test Data")
 plt.xlabel("Dropout %")
-plt.ylim(0.75, 0.85)
+#plt.ylim(0.75, 0.85)
 plt.tight_layout()
