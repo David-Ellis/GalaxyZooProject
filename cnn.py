@@ -159,7 +159,8 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 
-def create_CNN(optimizer = keras.optimizers.Adamax()):
+def create_CNN(optimizer = keras.optimizers.Adamax(), filters = 10,
+               kernal_size = 5, pool1 = 2, pool2 = 2):
     # instantiate model
     model = Sequential()
     # add first convolutional layer with 10 filters (dimensionality of output space)
@@ -167,13 +168,15 @@ def create_CNN(optimizer = keras.optimizers.Adamax()):
                      activation='relu',
                      input_shape=input_shape))
     # add 2D pooling layer
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    if pool1>1:
+      model.add(MaxPooling2D(pool_size=(pool1, pool1)))
     # add second convolutional layer with 20 filters
     model.add(Conv2D(20, (5, 5), activation='relu'))
     # apply dropout with rate 0.5
     model.add(Dropout(0.5))
     # add 2D pooling layer
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    if pool2>1:
+      model.add(MaxPooling2D(pool_size=(pool2, pool2)))
     # flatten data
     model.add(Flatten())
     # add a dense all-to-all relu layer
@@ -190,7 +193,7 @@ def create_CNN(optimizer = keras.optimizers.Adamax()):
     
     return model
   
-
+##############################################################################
 # %% Find best number of epochs
 
 # training parameters
@@ -282,8 +285,8 @@ plt.tight_layout()
 #%% Find best optimizers
 
 batch_size = 64
-retest = 10
-epochs = 20
+retest = 5
+epochs = 8
 
 labels = ["SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Adam", "Nadam"]
 optimizers = [keras.optimizers.SGD(),
@@ -337,3 +340,67 @@ plt.ylabel("Accuracy on Test Data")
 plt.ylim(0.7, 0.9)
 plt.xlabel("Optimiser")
 plt.tight_layout()
+
+##############################################################################
+#%% Filter number and kernal size
+
+print("----- Number of filters and kernal size -----")
+optimizer = keras.optimizers.RMSprop()
+
+retest = 3
+
+num_filters = [1, 5, 10, 15]
+kernals = [2, 5, 10]
+
+test_score = np.zeros((len(num_filters), len(kernals)))
+
+for i, num_filters_i in enumerate(num_filters):
+  for j, kernal_j in enumerate(kernals):
+    # make array to store retest scores
+    retest_scores = np.zeros(len(retest))
+    print("Retest: ", end = "")
+    for k in range(retest):
+      # compile model
+      model_DNN= create_CNN(optimizer = optimizer, filters = num_filters_i,
+                            kernal_size = kernal_j)
+      # choose new training + test data
+      X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
+      X_train, X_test, input_shape = reshape_data(X_train, X_test, img_rows, img_cols)
+      
+      # train CNN
+      model_DNN.fit(X_train, Y_train,
+                batch_size=batch_size,
+                epochs=epochs,
+                verbose=0,
+                validation_data=(X_test, Y_test))    
+      
+      # Save final score
+      retest_scores[k] = model_DNN.evaluate(X_test, Y_test, verbose=0)
+      print(k + 1, end = " ")
+    num_complete = i*len(num_filters)+j*len(kernals)+1
+    num_total = len(num_filters)*len(kernals)
+    print(": {} complete of {}.".format(num_complete, num_total))
+    test_score[i, j] = np.mean(retest_scores)
+
+print("\nFinal result:")
+print(test_score, "\n")
+
+print("Saving data...")
+np.save("data/cnn_" + mode + "_filters_and_kernals.npy", 
+          [num_filters, kernals, test_score])
+print("Done.")
+
+#%% Plotting
+
+num_filters, kernals, test_score = np.save("data/cnn_" + mode + "_filters_and_kernals.npy")
+
+markers = ["^", "x", "o"]
+for i, kernal_i in enumerate(kernals):
+  plt.plot(num_filters, test_score[:,i], marker = markers[i], 
+           label = "$k = {}$".format(kernal_i))
+  
+plt.ylabel("Accuracy on Test Data")
+plt.xlabel("Number of filters, $f$")
+plt.legend(loc="best")
+plt.tight_layout()
+plt.savefig("figures/cnn"+ mode + "_filters.pdf")
