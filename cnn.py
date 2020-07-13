@@ -119,7 +119,7 @@ def reshape_data(X_train, X_test, img_rows, img_cols, verbose=0):
   return X_train, X_test, input_shape
 # input image dimensions
 
-mode = "bulge" #  "bulge_full" #  "disk" # 
+mode = "disk" # "bulge" #  "bulge_full" #   # 
 
 
 if mode == "bulge_full":
@@ -145,6 +145,7 @@ img_rows, img_cols = length, length # number of pixels
 
 X_train, X_test, input_shape = reshape_data(X_train, X_test, img_rows, img_cols)
     
+print("Mode: ", mode)
 print('X_train shape:', X_train.shape)
 print('Y_train shape:', Y_train.shape)
 print()
@@ -158,7 +159,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 
-def create_CNN():
+def create_CNN(optimizer = keras.optimizers.Adamax()):
     # instantiate model
     model = Sequential()
     # add first convolutional layer with 10 filters (dimensionality of output space)
@@ -184,7 +185,7 @@ def create_CNN():
     
     # compile the model
     model.compile(loss=keras.losses.categorical_crossentropy,
-                  optimizer='Adam',
+                  optimizer=optimizer,
                   metrics=['accuracy'])
     
     return model
@@ -277,3 +278,62 @@ plt.ylabel('model accuracy')
 plt.xlabel('epoch')
 plt.tight_layout()
 #plt.savefig("figures/"+ mode +"_num_epochs.pdf")
+
+#%% Find best optimizers
+
+batch_size = 64
+retest = 10
+epochs = 20
+
+labels = ["SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Adam", "Nadam"]
+optimizers = [keras.optimizers.SGD(),
+              keras.optimizers.RMSprop(), keras.optimizers.Adagrad(), 
+              keras.optimizers.Adadelta(), keras.optimizers.Adamax(),
+              keras.optimizers.Adam(), keras.optimizers.Nadam()]
+
+test_accuracy = np.zeros(len(optimizers))
+
+test_accuracy_median = np.zeros((len(optimizers)))
+test_accuracy_upper = np.zeros((len(optimizers)))
+test_accuracy_lower = np.zeros((len(optimizers)))
+
+for i, optimizer in enumerate(optimizers):
+  print("Retest: ", end = "")
+  accuracies = np.zeros(retest)
+  for j in range(retest):
+    model_DNN= create_CNN(optimizer = optimizer)
+    X_train, Y_train, X_test, Y_test = splitData(X, Y, trainingPercentage)
+    X_train, X_test, input_shape = reshape_data(X_train, X_test, img_rows, img_cols)
+    # train DNN and store training info in history
+    model_DNN.fit(X_train, Y_train,
+              batch_size=batch_size,
+              epochs=epochs,
+              verbose=0,
+              validation_data=(X_test, Y_test))
+    
+    score = model_DNN.evaluate(X_test, Y_test, verbose=0)
+    accuracies[j] = score[1]
+    print(j+1, end = " ")
+    
+  print(": ", i+1, "of", len(optimizers), "complete")
+  test_accuracy_median[i] = np.median(accuracies)
+  test_accuracy_upper[i] = np.percentile(accuracies, 84.1)
+  test_accuracy_lower[i] = np.percentile(accuracies, 25.9)
+  
+np.save("data/cnn_" + mode + "_optimizer_test", 
+          [labels, test_accuracy_median, test_accuracy_upper, test_accuracy_lower])
+
+#%% Plot
+
+y_err1 = (test_accuracy_upper-test_accuracy_median)/test_accuracy_median
+y_err2 = (test_accuracy_median - test_accuracy_lower)/test_accuracy_median
+    
+plt.figure(figsize = (7, 5))  
+plt.bar(range(len(optimizers)),test_accuracy_median, 
+        yerr = [y_err1, y_err2], capsize = 7)
+labels = ["SGD", "RMSprop", "Adagrad", "Adadelta", "Adamax", "Adam", "Nadam"]
+plt.xticks(range(len(optimizers)), labels,rotation=45, size  = 12)
+plt.ylabel("Accuracy on Test Data")
+plt.ylim(0.7, 0.9)
+plt.xlabel("Optimiser")
+plt.tight_layout()
